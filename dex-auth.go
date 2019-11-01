@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +17,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const exampleAppState = "Vgn2lp5QnymFtLntKX5dM8k773PwcM87T4hQtiESC1q8wkUBgw5D3kH0r5qJ"
+const (
+	exampleAppState = "Vgn2lp5QnymFtLntKX5dM8k773PwcM87T4hQtiESC1q8wkUBgw5D3kH0r5qJ"
+
+	// clusterNameCookieKey is a name of they cookie that contains cluster name
+	clusterNameCookieKey = "cluster-name"
+)
 
 func (cluster *Cluster) oauth2Config(scopes []string) *oauth2.Config {
 
@@ -38,6 +44,49 @@ func (config *Config) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (config *Config) handleCallback(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(clusterNameCookieKey)
+	if err != nil {
+		renderHTMLError(w, config, "Callback invoked without cluster name cookie", 400)
+		log.Printf("config.handleCallback: cluster name cookie missing in request: %v", err)
+		return
+	}
+
+	clusterNameBytes, err := base64.URLEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		renderHTMLError(w, config, "Failed to get cluster name from the cookie", 400)
+		log.Printf("config.handleCallback: cluster name in cookie encoded incorrectly: %v", err)
+		return
+	}
+	clusterName := string(clusterNameBytes)
+
+	log.Printf("retrieved `%s` cluster name from cookie", clusterName)
+
+	cluster := config.getCluster(clusterName)
+	if cluster == nil {
+		renderHTMLError(
+			w,
+			config,
+			fmt.Sprint("Cluster `%s` requested from cookie does not exists", clusterName),
+			500,
+		)
+		log.Printf("config.handleCallback: cluster `%s` does not exists", clusterName)
+		return
+	}
+
+	cluster.handleCallback(w, r)
+}
+
+func (config *Config) getCluster(name string) *Cluster {
+	for _, c := range config.Clusters {
+		if c.Name == name {
+			return &c
+		}
+	}
+
+	return nil
+}
+
 func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var scopes []string
 
@@ -45,6 +94,14 @@ func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Handling login-uri for: %s", cluster.Name)
 	authCodeURL := cluster.oauth2Config(scopes).AuthCodeURL(exampleAppState, oauth2.AccessTypeOffline)
+
+	// Record the name of cluster
+	http.SetCookie(w, &http.Cookie{
+		Name:  clusterNameCookieKey,
+		Value: base64.URLEncoding.EncodeToString([]byte(cluster.Name)),
+		Path:  cluster.Config.Web_Path_Prefix,
+	})
+
 	log.Printf("Redirecting post-loginto: %s", authCodeURL)
 	http.Redirect(w, r, authCodeURL, http.StatusSeeOther)
 }

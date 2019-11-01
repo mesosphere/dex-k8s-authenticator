@@ -158,6 +158,8 @@ func start_app(config Config) {
 		config.Web_Path_Prefix = web_path_prefix
 	}
 
+	commonCallbackPath := path.Join(config.Web_Path_Prefix, "callback")
+
 	// Generate handlers for each cluster
 	for i, _ := range config.Clusters {
 		cluster := config.Clusters[i]
@@ -219,17 +221,25 @@ func start_app(config Config) {
 			os.Exit(1)
 		}
 
-		// Each cluster gets a different login and callback URL
-		http.HandleFunc(base_redirect_uri.Path, cluster.handleCallback)
-		log.Printf("Registered callback handler at: %s", base_redirect_uri.Path)
+		if base_redirect_uri.Path != commonCallbackPath {
+			// Each cluster gets a different login and callback URL
+			http.HandleFunc(base_redirect_uri.Path, cluster.handleCallback)
+			log.Printf("Registered callback handler at: %s", base_redirect_uri.Path)
+		} else {
+			log.Printf("Cluster `%s` is set to common global callback, not registering handler", cluster.Name)
+		}
 
 		login_uri := path.Join(config.Web_Path_Prefix, "login", cluster.Name)
 		http.HandleFunc(login_uri, cluster.handleLogin)
 		log.Printf("Registered login handler at: %s", login_uri)
+
+		config.Clusters[i] = cluster
 	}
 
 	// Index page
 	http.HandleFunc(config.Web_Path_Prefix, config.handleIndex)
+	// Common callback page
+	http.HandleFunc(path.Join(config.Web_Path_Prefix, "callback"), config.handleCallback)
 
 	// Serve static html assets
 	fs := http.FileServer(http.Dir("html/static/"))
