@@ -97,12 +97,16 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 
 // renderHTMLError renders an HTML page that presents an HTTP error.
 func (cluster *Cluster) renderHTMLError(w http.ResponseWriter, errorMsg string, code int) {
+	renderHTMLError(w, &cluster.Config, errorMsg, code)
+}
+
+func renderHTMLError(w http.ResponseWriter, c *Config, errorMsg string, code int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 	templates.ExecuteTemplate(w, "error.html", map[string]string{
-		"Logo_Uri":          cluster.Config.Logo_Uri,
-		"Web_Path_Prefix":   cluster.Config.Web_Path_Prefix,
+		"Logo_Uri":          c.Logo_Uri,
+		"Web_Path_Prefix":   c.Web_Path_Prefix,
 		"Code":              fmt.Sprintf("%d", code),
 		"Error_Description": errorMsg,
 	})
