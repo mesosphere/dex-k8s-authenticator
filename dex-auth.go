@@ -90,7 +90,11 @@ func (config *Config) getCluster(name string) *Cluster {
 func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var scopes []string
 
-	scopes = append(scopes, "openid", "profile", "email", "offline_access", "groups")
+	if len(cluster.Scopes) == 0 {
+		scopes = append(scopes, "openid", "profile", "email", "offline_access", "groups")
+	} else {
+		scopes = cluster.Scopes
+	}
 
 	log.Printf("Handling login-uri for: %s", cluster.Name)
 	authCodeURL := cluster.oauth2Config(scopes).AuthCodeURL(exampleAppState, oauth2.AccessTypeOffline)
