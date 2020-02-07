@@ -61,6 +61,7 @@ type Cluster struct {
 	Issuer              string
 	Client_Secret       string
 	Client_ID           string
+	Scopes              []string
 	K8s_Master_URI      string
 	K8s_Ca_URI          string
 	K8s_Ca_Pem          string
