@@ -117,6 +117,10 @@ func start_app(config Config) {
 		log.Fatalf("parse listen address: %v", err)
 	}
 
+	if len(config.Hmac_Secret) == 0 {
+		log.Fatalf("Hmac_Secret is not defined in configuration")
+	}
+
 	var s struct {
 		ScopesSupported []string `json:"scopes_supported"`
 	}

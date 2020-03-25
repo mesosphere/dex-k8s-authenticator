@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,7 +39,7 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) 
 		},
 		Provider:    cluster.Provider,
 		HmacTTL:     HmacTTL,
-		HmacSecret:  []byte(cluster.Config.Hmac_Secret),
+		HmacSecret:  parseSecret(&cluster.Config),
 		Storage:     st,
 		OIDCContext: ctx,
 	}
@@ -65,4 +66,13 @@ func register(name, base, endpoint string, f func(w http.ResponseWriter, req *ht
 
 func join(base, endpoint string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(base, "/"), strings.TrimLeft(endpoint, "/"))
+}
+
+// attempts to decode binary
+func parseSecret(config *Config) []byte {
+	b, err := hex.DecodeString(config.Hmac_Secret)
+	if err != nil {
+		return []byte(config.Hmac_Secret)
+	}
+	return b
 }
