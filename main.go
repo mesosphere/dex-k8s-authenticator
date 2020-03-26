@@ -17,8 +17,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/coreos/go-oidc"
+	"github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage"
+	memstorage "github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -89,6 +92,7 @@ type Config struct {
 	Static_Context_Name  bool
 	Trusted_Root_Ca      []string
 	Trusted_Root_Ca_File string
+	Hmac_Secret          string
 }
 
 func substituteEnvVars(text string) string {
@@ -111,6 +115,10 @@ func start_app(config Config) {
 	listenURL, err := url.Parse(config.Listen)
 	if err != nil {
 		log.Fatalf("parse listen address: %v", err)
+	}
+
+	if len(config.Hmac_Secret) == 0 {
+		log.Fatalf("Hmac_Secret is not defined in configuration")
 	}
 
 	var s struct {
@@ -248,6 +256,18 @@ func start_app(config Config) {
 	log.Printf("Registered static assets handler at: %s", static_uri)
 
 	http.Handle(static_uri, http.StripPrefix(static_uri, fs))
+
+	// Setup async auth service and build routes
+	stg := memstorage.New(false)
+	gc := storage.NewGC(&stg, time.Minute, false, debug)
+	if err := gc.Start(); err != nil {
+		log.Fatalf("error starting GC for async auth: %v", err)
+	}
+
+	// Hack(jr): We only support one provider in konvoy and it is not necessary to identify
+	// cluster scope in this context (all clusters should use the same provider).
+	cluster := &config.Clusters[0]
+	SetupAsyncAuth(cluster, &stg, config.Web_Path_Prefix)
 
 	// Determine whether to use TLS or not
 	switch listenURL.Scheme {
