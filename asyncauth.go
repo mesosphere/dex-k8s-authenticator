@@ -21,11 +21,9 @@ const (
 )
 
 func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) *asyncauth.KonvoyAsyncAuthServer {
-	var scopes []string
-	if len(cluster.Scopes) == 0 {
-		scopes = append(scopes, "openid", "profile", "email", "groups")
-	} else {
-		scopes = cluster.Scopes
+	scopes := cluster.Scopes
+	if len(scopes) == 0 {
+		scopes = []string{"openid", "profile", "email", "groups"}
 	}
 	ctx := oidc.ClientContext(context.Background(), cluster.Client)
 	s := &asyncauth.KonvoyAsyncAuthServer{
