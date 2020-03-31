@@ -13,6 +13,9 @@ build: get
 	@echo "Building $(GOFILES) to ./bin"
 	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build -o bin/$(GONAME) $(GOFILES)
 
+test: get
+	@GOPATH=$(GOPATH) GOBIN=$(GOBIN) go test ./... $(GOFILES)
+
 container:
 	@echo "Building container image"
 	docker build -t ${GONAME}:${TAG} .

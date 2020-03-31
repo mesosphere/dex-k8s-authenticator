@@ -93,6 +93,7 @@ type Config struct {
 	Trusted_Root_Ca      []string
 	Trusted_Root_Ca_File string
 	Hmac_Secret          string
+	PluginVersion        string
 }
 
 func substituteEnvVars(text string) string {
@@ -386,7 +387,7 @@ func initConfig() {
 		origConfigStr := bytes.NewBuffer(config).String()
 		viper.ReadConfig(bytes.NewBufferString(origConfigStr))
 
-		log.Printf("Using config file:", viper.ConfigFileUsed())
+		log.Printf("Using config file: %s", viper.ConfigFileUsed())
 	}
 }
 
