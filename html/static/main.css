@@ -32,6 +32,14 @@ pre {
   text-align: left;
 }
 
+.plugin-kubeconfig-container {
+  color: #333;
+  margin: 45px auto;
+  max-width: 90%;
+  min-width: 320px;
+  text-align: left;
+}
+
 .dex-btn {
   border-radius: 4px;
   border: 0;
@@ -97,6 +105,12 @@ div.groups {
 }
 
 div.command {
-margin-top: 15px;
+  margin-top: 15px;
 }
 
+pre code {
+  background-color: #ccc;
+  border: 1px solid #999;
+  display: block;
+  padding: 20px;
+}

@@ -67,7 +67,7 @@ func (config *Config) handleCallback(w http.ResponseWriter, r *http.Request) {
 		renderHTMLError(
 			w,
 			config,
-			fmt.Sprint("Cluster `%s` requested from cookie does not exists", clusterName),
+			fmt.Sprintf("Cluster `%s` requested from cookie does not exists", clusterName),
 			500,
 		)
 		log.Printf("config.handleCallback: cluster `%s` does not exists", clusterName)
