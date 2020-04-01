@@ -1,7 +1,6 @@
 .theme-body {
-  background-color: #efefef;
+  background-color: #fff;
   color: #333;
-  font-family: 'Source Sans Pro', Helvetica, sans-serif;
 }
 
 .theme-navbar {
@@ -65,13 +64,13 @@
 }
 
 .theme-btn--success {
-  background-color: #2FC98E;
+  background-color: #2fc98e;
   color: #fff;
   width: 350px;
 }
 
 .theme-btn--success:hover {
-  background-color: #49E3A8;
+  background-color: #49e3a8;
 }
 
 .theme-form-row {
@@ -81,7 +80,7 @@
 
 .theme-form-input:focus,
 .theme-form-input:active {
-  border-color: #66AFE9;
+  border-color: #66afe9;
   outline: none;
 }
 

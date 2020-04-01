@@ -43,12 +43,37 @@ type ClusterJSON struct {
 	CA              string `json:"ca"`
 }
 
-// FlatProviderMap is a flat
 type FlatProviderMap struct {
 	// Name is the hostname of the provider
 	Name     string        `json:"name"`
 	Url      string        `json:"url"`
 	Clusters []ClusterJSON `json:"clusters"`
+}
+
+type KConfigCluster struct {
+	Name            string
+	CertificateData string
+	Server          string
+}
+
+type KConfigContext struct {
+	Name    string
+	Cluster string
+	User    string
+}
+
+type KConfigUser struct {
+	Name            string
+	AuthURL         string
+	CertificateData string
+	Command         string
+}
+
+type KubeConfig struct {
+	CurrentContext string
+	Clusters       []KConfigCluster
+	Contexts       []KConfigContext
+	Users          []KConfigUser
 }
 
 func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) *asyncauth.KonvoyAsyncAuthServer {
@@ -284,32 +309,6 @@ func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Re
 	_, _ = w.Write(j)
 }
 
-type KConfigCluster struct {
-	Name            string
-	CertificateData string
-	Server          string
-}
-
-type KConfigContext struct {
-	Name    string
-	Cluster string
-	User    string
-}
-
-type KConfigUser struct {
-	Name            string
-	AuthURL         string
-	CertificateData string
-	Command         string
-}
-
-type KubeConfig struct {
-	CurrentContext string
-	Clusters       []KConfigCluster
-	Contexts       []KConfigContext
-	Users          []KConfigUser
-}
-
 func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		config.Clusters[0].renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -389,4 +388,3 @@ func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
 	}
 	return output.Bytes(), err
 }
-
