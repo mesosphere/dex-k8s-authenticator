@@ -389,4 +389,3 @@ func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
 	}
 	return output.Bytes(), err
 }
-
