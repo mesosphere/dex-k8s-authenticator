@@ -77,6 +77,7 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 			log.Fatal(err)
 		}
 		clusterHostname = parsed.Hostname()
+		log.Printf("setting cluster hostname to %s", clusterHostname)
 	}
 
 	token_data := templateData{

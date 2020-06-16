@@ -80,21 +80,21 @@ type Cluster struct {
 
 // Define our configuration
 type Config struct {
-	Clusters                  []Cluster
-	Listen                    string
-	Web_Path_Prefix           string
-	TLS_Cert                  string
-	TLS_Key                   string
-	IDP_Ca_URI                string
-	IDP_Ca_Pem                string
-	IDP_Ca_Pem_File           string
-	Logo_Uri                  string
-	Static_Context_Name       bool
-	Trusted_Root_Ca           []string
-	Trusted_Root_Ca_File      string
-	Hmac_Secret               string
-	PluginVersion             string
-	UseHostnameForClusterName bool
+	Clusters                         []Cluster
+	Listen                           string
+	Web_Path_Prefix                  string
+	TLS_Cert                         string
+	TLS_Key                          string
+	IDP_Ca_URI                       string
+	IDP_Ca_Pem                       string
+	IDP_Ca_Pem_File                  string
+	Logo_Uri                         string
+	Static_Context_Name              bool
+	Trusted_Root_Ca                  []string
+	Trusted_Root_Ca_File             string
+	Hmac_Secret                      string
+	PluginVersion                    string
+	UseClusterHostnameForClusterName bool
 }
 
 func substituteEnvVars(text string) string {
@@ -126,6 +126,8 @@ func start_app(config Config) {
 	var s struct {
 		ScopesSupported []string `json:"scopes_supported"`
 	}
+
+	log.Printf("useClusterHostname: %t", config.UseClusterHostnameForClusterName)
 
 	certp, err := x509.SystemCertPool()
 	// Load Inline CA certs
