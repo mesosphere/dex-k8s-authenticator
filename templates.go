@@ -55,6 +55,7 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 	logoURI string,
 	webPathPrefix string,
 	kubectlVersion string,
+	useClusterHostnameForClusterName bool,
 	claims []byte) {
 
 	var data map[string]interface{}
@@ -69,9 +70,13 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 		unix_username = strings.Split(email, "@")[0]
 	}
 
-	parsed, err := url.Parse(cluster.K8s_Master_URI)
-	if err != nil {
-		log.Fatal(err)
+	clusterHostname := cluster.Name
+	if useClusterHostnameForClusterName {
+		parsed, err := url.Parse(cluster.K8s_Master_URI)
+		if err != nil {
+			log.Fatal(err)
+		}
+		clusterHostname = parsed.Hostname()
 	}
 
 	token_data := templateData{
@@ -82,7 +87,7 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 		Username:          unix_username,
 		Issuer:            data["iss"].(string),
 		ClusterName:       cluster.Name,
-		ClusterHostname:   parsed.Hostname(),
+		ClusterHostname:   clusterHostname,
 		ShortDescription:  cluster.Short_Description,
 		ClientSecret:      cluster.Client_Secret,
 		ClientID:          cluster.Client_ID,

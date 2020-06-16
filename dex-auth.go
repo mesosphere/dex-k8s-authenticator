@@ -204,5 +204,6 @@ func (cluster *Cluster) handleCallback(w http.ResponseWriter, r *http.Request) {
 		cluster.Config.Logo_Uri,
 		cluster.Config.Web_Path_Prefix,
 		viper.GetString("kubectl_version"),
+		cluster.Config.UseHostnameForClusterName,
 		buff.Bytes())
 }
