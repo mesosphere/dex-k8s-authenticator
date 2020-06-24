@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -34,6 +35,7 @@ type templateData struct {
 	ShortDescription  string
 	ClientSecret      string
 	ClientID          string
+	ClusterHostname   string
 	K8sMasterURI      string
 	K8sCaURI          string
 	K8sCaPem          string
@@ -53,6 +55,7 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 	logoURI string,
 	webPathPrefix string,
 	kubectlVersion string,
+	useClusterHostnameForClusterName bool,
 	claims []byte) {
 
 	var data map[string]interface{}
@@ -67,6 +70,16 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 		unix_username = strings.Split(email, "@")[0]
 	}
 
+	clusterHostname := cluster.Name
+	if useClusterHostnameForClusterName {
+		parsed, err := url.Parse(cluster.K8s_Master_URI)
+		if err != nil {
+			log.Fatal(err)
+		}
+		clusterHostname = parsed.Hostname()
+		log.Printf("setting cluster hostname to %s", clusterHostname)
+	}
+
 	token_data := templateData{
 		IDToken:           idToken,
 		RefreshToken:      refreshToken,
@@ -75,6 +88,7 @@ func (cluster *Cluster) renderToken(w http.ResponseWriter,
 		Username:          unix_username,
 		Issuer:            data["iss"].(string),
 		ClusterName:       cluster.Name,
+		ClusterHostname:   clusterHostname,
 		ShortDescription:  cluster.Short_Description,
 		ClientSecret:      cluster.Client_Secret,
 		ClientID:          cluster.Client_ID,
