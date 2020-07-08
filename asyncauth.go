@@ -34,6 +34,8 @@ type TemplateData struct {
 	Providers    []FlatProviderMap
 	AsyncAuthURL string
 	KubeAPI      string
+	DarwinURL    string
+	LinuxURL     string
 }
 
 type ClusterJSON struct {
@@ -118,8 +120,14 @@ func (cluster *Cluster) pluginController(w http.ResponseWriter, r *http.Request)
 	}
 
 	// use the redirect url to determine base URL
+	parsed, _ := url.Parse(cluster.Redirect_URI)
+	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
+	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
+
 	data := TemplateData{
-		Config: cluster.Config,
+		Config:    cluster.Config,
+		LinuxURL:  getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion),
+		DarwinURL: getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion),
 	}
 
 	if err := renderPluginInstructions(w, data); err != nil {
@@ -251,7 +259,7 @@ func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Re
 	m := make(map[string][]ClusterJSON)
 
 	for _, cluster := range config.Clusters {
-		parsed, _ := url.Parse(cluster.Redirect_URI)
+		parsed, _ := url.Parse(cluster.K8s_Master_URI)
 		appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 		asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
 
@@ -341,7 +349,7 @@ func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
 	kUser := KConfigUser{
 		Name:    profileName,
 		AuthURL: asyncAuthURL,
-		Command: runPath,
+		Command: binaryName,
 	}
 
 	// In Konvoy, we assume that the first cluster in the configuration (enforced by the initContainer)
