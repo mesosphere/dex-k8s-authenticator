@@ -219,6 +219,12 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 		}
 	}
 
+	// Get the Kommander Cluster CA
+	authCAData := ""
+	if config.Clusters[0].K8s_Ca_Pem != "" {
+		authCAData = base64.StdEncoding.EncodeToString([]byte(config.Clusters[0].K8s_Ca_Pem))
+	}
+
 	parsed, _ := url.Parse(config.Clusters[0].Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
@@ -237,6 +243,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 		"profileName":   profileName,
 		"kubeAPI":       cluster.K8s_Master_URI,
 		"caPem":         cluster.K8s_Ca_Pem,
+		"authCAData":    authCAData,
 	}
 
 	w.WriteHeader(http.StatusOK)
