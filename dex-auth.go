@@ -87,6 +87,13 @@ func (config *Config) getCluster(name string) *Cluster {
 	return nil
 }
 
+func (config *Config) getFirstClusterOrPanic() *Cluster {
+	if len(config.Clusters) < 1 {
+		panic("no clusters have been defined")
+	}
+	return &config.Clusters[0]
+}
+
 func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 	var scopes []string
 

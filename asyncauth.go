@@ -199,33 +199,31 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 	}
 
 	selectCluster := req.URL.Query().Get("cluster")
-	var cluster Cluster
+	var cluster *Cluster
 	if selectCluster == "" {
-		cluster = config.Clusters[0]
+		cluster = config.getFirstClusterOrPanic()
 	} else {
-		found := false
 		for _, c := range config.Clusters {
 			parsed, _ := url.Parse(c.K8s_Master_URI)
 			if parsed.Hostname() == selectCluster {
-				cluster = c
-				found = true
+				cluster = &c
 				break
 			}
 		}
-		if !found {
+		if cluster == nil{
 			log.Printf("requested cluster does not exist: %s", selectCluster)
-			config.Clusters[0].renderHTMLError(w, "Bad Request", http.StatusBadRequest)
+			config.getFirstClusterOrPanic().renderHTMLError(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 	}
 
 	// Get the Kommander Cluster CA
 	authCAData := ""
-	if config.Clusters[0].K8s_Ca_Pem != "" {
-		authCAData = base64.StdEncoding.EncodeToString([]byte(config.Clusters[0].K8s_Ca_Pem))
+	if config.getFirstClusterOrPanic().K8s_Ca_Pem != "" {
+		authCAData = base64.StdEncoding.EncodeToString([]byte(config.getFirstClusterOrPanic().K8s_Ca_Pem))
 	}
 
-	parsed, _ := url.Parse(config.Clusters[0].Redirect_URI)
+	parsed, _ := url.Parse(config.getFirstClusterOrPanic().Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
 
@@ -259,7 +257,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 // This handler is used to provide app javascript with JSON formatted
 func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
-		config.Clusters[0].renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		config.getFirstClusterOrPanic().renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -290,7 +288,7 @@ func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Re
 
 	j, err := json.Marshal(flat)
 	if err != nil {
-		config.Clusters[0].renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
+		config.getFirstClusterOrPanic().renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -327,7 +325,7 @@ type KubeConfig struct {
 
 func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
-		config.Clusters[0].renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		config.getFirstClusterOrPanic().renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -339,7 +337,7 @@ func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Reques
 	kubeconfig, err := config.renderKubeconfig(profileName)
 	if err != nil {
 		log.Printf("error rendering kubeconfig: %v", err)
-		config.Clusters[0].renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
+		config.getFirstClusterOrPanic().renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/octet-stream")
@@ -349,7 +347,7 @@ func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Reques
 }
 
 func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
-	parsed, _ := url.Parse(config.Clusters[0].Redirect_URI)
+	parsed, _ := url.Parse(config.getFirstClusterOrPanic().Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, config.Web_Path_Prefix)
 
@@ -363,8 +361,8 @@ func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
 	// is also the iDP host (dex). There is also logic which accounts for custom CAs. If this string
 	// is empty, we can assume that we are using a well known CA; and thus can rely on the system
 	// CA pool for verification
-	if config.Clusters[0].K8s_Ca_Pem != "" {
-		kUser.CertificateData = base64.StdEncoding.EncodeToString([]byte(config.Clusters[0].K8s_Ca_Pem))
+	if config.getFirstClusterOrPanic().K8s_Ca_Pem != "" {
+		kUser.CertificateData = base64.StdEncoding.EncodeToString([]byte(config.getFirstClusterOrPanic().K8s_Ca_Pem))
 	}
 
 	var kClusters []KConfigCluster
