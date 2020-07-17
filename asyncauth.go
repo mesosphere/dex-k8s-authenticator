@@ -203,10 +203,10 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 	if selectCluster == "" {
 		cluster = config.getFirstClusterOrPanic()
 	} else {
-		for _, c := range config.Clusters {
+		for i, c := range config.Clusters {
 			parsed, _ := url.Parse(c.K8s_Master_URI)
 			if parsed.Hostname() == selectCluster {
-				cluster = &c
+				cluster = &config.Clusters[i]
 				break
 			}
 		}
