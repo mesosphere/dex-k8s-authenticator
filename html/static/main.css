@@ -152,3 +152,9 @@ pre code {
   display: block;
   padding: 20px;
 }
+code {
+  background-color: #1b2029;
+  color: #ffffff;
+  display: block;
+  padding: 20px;
+}
