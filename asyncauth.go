@@ -23,7 +23,9 @@ import (
 const (
 	HmacTTL            = 300
 	downloadPath       = "static/downloads/"
-	binaryName         = "konvoy-async-auth"
+	programName        = "konvoy-async-auth"
+	binaryName         = "konvoy-async-plugin"
+	binaryNameWindows  = "konvoy-async-plugin.exe"
 	runPath            = "konvoy/bin/" + binaryName
 	installPath        = ".kube/konvoy/bin/" + binaryName
 	defaultProfileName = "default-profile"
@@ -36,6 +38,7 @@ type TemplateData struct {
 	KubeAPI      string
 	DarwinURL    string
 	LinuxURL     string
+	WindowsURL   string
 }
 
 type ClusterJSON struct {
@@ -82,7 +85,8 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) 
 	register("plugin data", basePrefix, "/plugin/data/json", cluster.getInstructionDataJSON)
 	register("plugin instructions update", basePrefix, "/plugin/data", cluster.Config.renderInstructions)
 	register("plugin provider data", basePrefix, "/plugin/providers", cluster.Config.getClustersByProviders)
-	register("kubeconfig download", basePrefix, "/plugin/kubeconfig", cluster.Config.downloadKubeConfig)
+	register("kubeconfig download", basePrefix, "/plugin/kubeconfig", cluster.Config.downloadKubeConfigUnix)
+	register("kubeconfig download windows", basePrefix, "/plugin/kubeconfig_windows", cluster.Config.downloadKubeConfigWindows)
 
 	return s
 }
@@ -125,9 +129,10 @@ func (cluster *Cluster) pluginController(w http.ResponseWriter, r *http.Request)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
 
 	data := TemplateData{
-		Config:    cluster.Config,
-		LinuxURL:  getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion),
-		DarwinURL: getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion),
+		Config:     cluster.Config,
+		LinuxURL:   getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
+		DarwinURL:  getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
+		WindowsURL: getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
 	}
 
 	if err := renderPluginInstructions(w, data); err != nil {
@@ -147,9 +152,9 @@ func renderPluginInstructions(w http.ResponseWriter, data TemplateData) error {
 	return nil
 }
 
-func getDownloadURL(url, platform, version string) string {
+func getDownloadURL(url, platform, version, binary string) string {
 	// TODO: make this more readable
-	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, binaryName, version, binaryName)
+	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, programName, version, binary)
 }
 
 func (cluster *Cluster) getInstructionDataJSON(w http.ResponseWriter, req *http.Request) {
@@ -210,7 +215,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 				break
 			}
 		}
-		if cluster == nil{
+		if cluster == nil {
 			log.Printf("requested cluster does not exist: %s", selectCluster)
 			config.getFirstClusterOrPanic().renderHTMLError(w, "Bad Request", http.StatusBadRequest)
 			return
@@ -232,8 +237,9 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 
 	data := map[string]string{
 		"webPathPrefix": cluster.Config.Web_Path_Prefix,
-		"linuxURL":      getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion),
-		"darwinURL":     getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion),
+		"linuxURL":      getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
+		"darwinURL":     getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
+		"windowsURL":    getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
 		"installPath":   installPath,
 		"runPath":       runPath,
 		"asyncAuthURL":  asyncAuthURL,
@@ -323,7 +329,7 @@ type KubeConfig struct {
 	Users          []KConfigUser
 }
 
-func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Request) {
+func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Request, binaryPath string) {
 	if req.Method != http.MethodGet {
 		config.getFirstClusterOrPanic().renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
@@ -334,7 +340,7 @@ func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Reques
 		profileName = defaultProfileName
 	}
 
-	kubeconfig, err := config.renderKubeconfig(profileName)
+	kubeconfig, err := config.renderKubeconfig(profileName, binaryPath)
 	if err != nil {
 		log.Printf("error rendering kubeconfig: %v", err)
 		config.getFirstClusterOrPanic().renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
@@ -346,7 +352,15 @@ func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Reques
 	_, _ = w.Write(kubeconfig)
 }
 
-func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
+func (config *Config) downloadKubeConfigUnix(w http.ResponseWriter, req *http.Request) {
+	config.downloadKubeConfig(w, req, binaryName)
+}
+
+func (config *Config) downloadKubeConfigWindows(w http.ResponseWriter, req *http.Request) {
+	config.downloadKubeConfig(w, req, binaryNameWindows)
+}
+
+func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, error) {
 	parsed, _ := url.Parse(config.getFirstClusterOrPanic().Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, config.Web_Path_Prefix)
@@ -354,7 +368,7 @@ func (config *Config) renderKubeconfig(profileName string) ([]byte, error) {
 	kUser := KConfigUser{
 		Name:    profileName,
 		AuthURL: asyncAuthURL,
-		Command: binaryName,
+		Command: binaryPath,
 	}
 
 	// In Konvoy, we assume that the first cluster in the configuration (enforced by the initContainer)
