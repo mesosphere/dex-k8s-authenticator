@@ -23,8 +23,9 @@ import (
 const (
 	HmacTTL            = 300
 	downloadPath       = "static/downloads/"
+	programName        = "konvoy-async-auth"
 	binaryName         = "konvoy-async-plugin"
-	binaryNameWin32    = "konvoy-async-plugin.exe"
+	binaryNameWindows  = "konvoy-async-plugin.exe"
 	runPath            = "konvoy/bin/" + binaryName
 	installPath        = ".kube/konvoy/bin/" + binaryName
 	defaultProfileName = "default-profile"
@@ -131,7 +132,7 @@ func (cluster *Cluster) pluginController(w http.ResponseWriter, r *http.Request)
 		Config:     cluster.Config,
 		LinuxURL:   getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
 		DarwinURL:  getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
-		WindowsURL: getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWin32),
+		WindowsURL: getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
 	}
 
 	if err := renderPluginInstructions(w, data); err != nil {
@@ -153,7 +154,7 @@ func renderPluginInstructions(w http.ResponseWriter, data TemplateData) error {
 
 func getDownloadURL(url, platform, version, binary string) string {
 	// TODO: make this more readable
-	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, "konvoy-async-auth", version, binary)
+	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, programName, version, binary)
 }
 
 func (cluster *Cluster) getInstructionDataJSON(w http.ResponseWriter, req *http.Request) {
@@ -238,7 +239,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 		"webPathPrefix": cluster.Config.Web_Path_Prefix,
 		"linuxURL":      getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
 		"darwinURL":     getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
-		"windowsURL":    getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWin32),
+		"windowsURL":    getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
 		"installPath":   installPath,
 		"runPath":       runPath,
 		"asyncAuthURL":  asyncAuthURL,
@@ -356,7 +357,7 @@ func (config *Config) downloadKubeConfigUnix(w http.ResponseWriter, req *http.Re
 }
 
 func (config *Config) downloadKubeConfigWindows(w http.ResponseWriter, req *http.Request) {
-	config.downloadKubeConfig(w, req, binaryNameWin32)
+	config.downloadKubeConfig(w, req, binaryNameWindows)
 }
 
 func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, error) {
