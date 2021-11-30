@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.10
+FROM golang:1.13-alpine3.12
 
 RUN apk add --no-cache --update alpine-sdk bash
 
@@ -6,7 +6,7 @@ COPY . /go/src/github.com/mintel/dex-k8s-authenticator
 WORKDIR /go/src/github.com/mintel/dex-k8s-authenticator
 RUN make get && make
 
-FROM alpine:3.10.3
+FROM alpine:3.12.9
 # Dex connectors, such as GitHub and Google logins require root certificates.
 # Proper installations should manage those certificates, but it's a bad user
 # experience when this doesn't work out of the box.
