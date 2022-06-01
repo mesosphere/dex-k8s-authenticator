@@ -5,3 +5,4 @@ vendor
 *.iml
 _build
 html/static/downloads
+.envrc
