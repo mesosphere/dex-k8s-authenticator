@@ -37,6 +37,7 @@ test: get install-tools
 	@go test ./...
 
 .PHONY: container
+# Make sure to build the binary with the correct OS/architecture so it can be run in the container
 container: export GOOS=linux
 container: export GOARCH=amd64
 container: konvoy-async-auth build
