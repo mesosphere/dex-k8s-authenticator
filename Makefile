@@ -6,7 +6,7 @@ GOARCH := $(shell go env GOARCH)
 GOFILES=$(wildcard *.go)
 GONAME=dex-k8s-authenticator
 IMAGE_NAME=mesosphere/dex-k8s-authenticator
-TAG=latest
+TAG ?= latest
 
 export GO111MODULE ?= on
 export GOPRIVATE ?= github.com/mesosphere
@@ -43,6 +43,11 @@ container: export GOARCH=amd64
 container: konvoy-async-auth build
 	@echo "Building container image"
 	docker build -t ${IMAGE_NAME}:${TAG} .
+
+.PHONY: push-image
+push-image:
+	@echo "Pushing container image: $(IMAGE_NAME):$(TAG)"
+	docker push ${IMAGE_NAME}:${TAG}
 
 .PHONY: clean
 clean:
