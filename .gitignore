@@ -1,5 +1,8 @@
 *~
 bin
 vendor
-./idea
+.idea
 *.iml
+_build
+html/static/downloads
+.envrc

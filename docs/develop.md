@@ -4,7 +4,7 @@
 
     make 
     
-Creates ./bin/dex-k8s-authenticator
+Creates `./bin/$(go env GOOS)/$(go env GOARCH)/dex-k8s-authenticator`
 
 ## Building a container
 
@@ -16,10 +16,13 @@ Creates ./bin/dex-k8s-authenticator
 
 You must have a `dex` instance running before starting `dex-k8s-authenticator`.
 
-Follow the example here:
-https://github.com/coreos/dex/blob/master/Documentation/getting-started.md
+Follow the example here: https://dexidp.io/docs/getting-started/
 
-Start it with using the provided `./examples/dex-server-config-dev.yaml`
+Start `dex` locally using the config in `examples/dex-server-config-dex.yaml`
+
+```bash
+dex serve examples/dex-server-config-dev.yaml
+```
 
 ### Start Dex K8s Authenticator
 

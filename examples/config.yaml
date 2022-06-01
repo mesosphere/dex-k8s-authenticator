@@ -26,7 +26,6 @@ clusters:
 
     # don't use username for context
     static_context_name: false
-
     # CA for your k8s cluster - used in WebUI instructions for generating
     # kubeconfig
     # Both k8s_ca_uri and k8s_ca_pem are optional - you typically specifiy
@@ -74,10 +73,14 @@ listen: http://127.0.0.1:5555
 web_path_prefix: /
 
 # Optional kubectl version which provides a download link to the the binary
-kubectl_version: v1.11.2
+kubectl_version: v1.23.6
 
 # Optional Url to display a logo image
 # logo_uri: http://<path-to-your-logo.png>
 
 # Enable more debug
 debug: false
+
+hmac_secret: test
+
+pluginversion: v0.1.3
