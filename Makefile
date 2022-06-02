@@ -7,7 +7,7 @@ GOFILES=$(wildcard *.go)
 GONAME=dex-k8s-authenticator
 IMAGE_NAME=mesosphere/dex-k8s-authenticator
 TAG ?= latest
-
+export CGO_ENABLED=0
 export GO111MODULE ?= on
 export GOPRIVATE ?= github.com/mesosphere
 
