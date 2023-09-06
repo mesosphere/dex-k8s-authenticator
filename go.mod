@@ -8,5 +8,9 @@ require (
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
-	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
+	github.com/stretchr/testify v1.8.4
+	golang.org/x/oauth2 v0.8.0
+	k8s.io/apimachinery v0.28.1
+	k8s.io/client-go v0.28.1
+	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
 )
