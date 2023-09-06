@@ -70,6 +70,8 @@ type Cluster struct {
 	K8s_Ca_Pem          string
 	Static_Context_Name bool
 
+	Enable_Multi_Tenancy bool
+
 	Verifier       *oidc.IDTokenVerifier
 	Provider       *oidc.Provider
 	OfflineAsScope bool

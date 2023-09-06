@@ -18,6 +18,7 @@ dexK8sAuthenticator:
   #logoUrl: http://<path-to-your-logo.png>
   #tlsCert: /path/to/dex-client.crt
   #tlsKey: /path/to/dex-client.key
+  enableMultiTenancy: false
   clusters:
   - name: my-cluster
     short_description: "My Cluster"

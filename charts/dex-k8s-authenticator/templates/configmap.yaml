@@ -23,9 +23,12 @@ data:
     {{- if .idpCaPem }}
     idp_ca_pem: {{ toYaml .idpCaPem | indent 4 }}
     {{- end }}
-    {{- if and .tlsCert .tlsKey }} 
+    {{- if and .tlsCert .tlsKey }}
     tls_cert: "{{ .tlsCert }}"
     tls_key: "{{ .tlsKey }}"
+    {{- end }}
+    {{- if .enableMultiTenancy }}
+    enable_multi_tenancy: true
     {{- end }}
     clusters:
 {{ toYaml .clusters | indent 4 }}
