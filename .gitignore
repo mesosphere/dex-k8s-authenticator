@@ -6,3 +6,4 @@ vendor
 _build
 html/static/downloads
 .envrc
+cover.out
