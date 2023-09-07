@@ -274,7 +274,7 @@ func start_app(config Config) {
 		r := mux.NewRouter().PathPrefix(tenantBasePath).Subrouter()
 		r.HandleFunc("/{tenantId}", NewTenancyHandler(
 			tenants, &config, templates.Lookup("index-multitenant.html")))
-		http.Handle(tenantBasePath, r)
+		http.Handle(tenantBasePath+"/", r)
 	}
 
 	// Setup async auth service and build routes
