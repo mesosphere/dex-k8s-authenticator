@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -24,7 +25,8 @@ func NewTenancyHandler(tenants tenancy.Tenants, c *Config, templates *template.T
 		}
 
 		if !exists {
-			w.WriteHeader(http.StatusNotFound)
+			msg := fmt.Sprintf("Requested tenant %q not found", tenantId)
+			renderHTMLError(w, c, msg, http.StatusNotFound)
 			return
 		}
 
