@@ -20,10 +20,13 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
+	"github.com/gorilla/mux"
 	"github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage"
 	memstorage "github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 )
 
 var (
@@ -95,6 +98,7 @@ type Config struct {
 	Hmac_Secret                      string
 	PluginVersion                    string
 	UseClusterHostnameForClusterName bool
+	Enable_Multi_Tenancy             bool
 }
 
 func substituteEnvVars(text string) string {
@@ -230,8 +234,7 @@ func start_app(config Config) {
 		base_redirect_uri, err := url.Parse(cluster.Redirect_URI)
 
 		if err != nil {
-			fmt.Errorf("Parsing redirect_uri address: %v", err)
-			os.Exit(1)
+			log.Fatalf("Parsing redirect_uri address: %v", err)
 		}
 
 		if base_redirect_uri.Path != commonCallbackPath {
@@ -260,6 +263,19 @@ func start_app(config Config) {
 	log.Printf("Registered static assets handler at: %s", static_uri)
 
 	http.Handle(static_uri, http.StripPrefix(static_uri, fs))
+
+	if config.Enable_Multi_Tenancy {
+		tenantBasePath := path.Join(config.Web_Path_Prefix, "workspace")
+		tenants, err := tenancy.NewK8sFromEnvironment()
+		if err != nil {
+			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
+		}
+		log.Printf("Starting with multi-tenancy enabled on path %s", tenantBasePath)
+		r := mux.NewRouter().PathPrefix(tenantBasePath).Subrouter()
+		r.HandleFunc("/{tenantId}", NewTenancyHandler(
+			tenants, &config, templates.Lookup("index-multitenant.html")))
+		http.Handle(tenantBasePath, r)
+	}
 
 	// Setup async auth service and build routes
 	stg := memstorage.New(false)
