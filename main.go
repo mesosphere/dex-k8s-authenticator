@@ -358,6 +358,9 @@ var RootCmd = &cobra.Command{
 	Long:  `Dex Kubernetes Authenticator provides a web-interface to generate a kubeconfig file based on a selected Kubernetes cluster. One or more clusters can be defined in the configuration file.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		// Allow enabling with env variable
+		_ = viper.BindEnv("Enable_Multi_Tenancy", "ENABLE_MULTI_TENANCY")
+
 		var config Config
 		err := viper.Unmarshal(&config)
 		if err != nil {
