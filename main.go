@@ -270,10 +270,10 @@ func start_app(config Config) {
 		if err != nil {
 			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
 		}
-		log.Printf("Starting with multi-tenancy enabled on path %s", tenantBasePath)
+		log.Printf("Starting with multi-tenancy enabled at: %s", tenantBasePath)
 		r := mux.NewRouter().PathPrefix(tenantBasePath).Subrouter()
 		r.HandleFunc("/{tenantId}", NewTenancyHandler(
-			tenants, &config, templates.Lookup("index-multitenant.html")))
+			tenants, &config, getTenancyIndexTemplate()))
 		http.Handle(tenantBasePath+"/", r)
 	}
 

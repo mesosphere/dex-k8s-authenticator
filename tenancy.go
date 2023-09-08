@@ -12,6 +12,16 @@ import (
 	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 )
 
+// getTenancyIndexTemplate is a workaround for deploying container without a need
+// for changing the helm chart.
+func getTenancyIndexTemplate() *template.Template {
+	tpl := templates.Lookup("index-multitenant.html")
+	if tpl == nil {
+		tpl = template.Must(template.ParseFiles("./original-templates/index-multitenant.html"))
+	}
+	return tpl
+}
+
 // NewTenancyHandler displays a page where the user can see a list of clusters
 // for given tenant.
 func NewTenancyHandler(tenants tenancy.Tenants, c *Config, templates *template.Template) http.HandlerFunc {
