@@ -28,6 +28,10 @@ var (
 	}
 )
 
+const (
+	workspaceNameAnnotation = "kommander.mesosphere.io/display-name"
+)
+
 var _ Tenants = &k8sTenants{}
 
 // NewK8sFromEnvironment creates k8s tenants from in cluster configuration.
@@ -72,6 +76,29 @@ func (t *k8sTenants) Exists(ctx context.Context, tenantId TenantId) (bool, error
 	}
 
 	return true, nil
+}
+
+func (t *k8sTenants) Get(ctx context.Context, tenantId TenantId) (*Tenant, error) {
+	// workspace.name is the tenant id
+	workspace, err := t.client.Resource(workspaceGVR).
+		Get(ctx, string(tenantId), metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	tenant := &Tenant{
+		ID:   tenantId,
+		Name: string(tenantId),
+	}
+
+	if name, ok := workspace.GetAnnotations()[workspaceNameAnnotation]; ok {
+		tenant.Name = name
+	}
+
+	return tenant, nil
 }
 
 // FilterClusterNames gets the list of KC names for given tenant (via Worksspace)
