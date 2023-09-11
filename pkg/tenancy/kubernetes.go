@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/strings/slices"
 )
 
@@ -33,7 +34,11 @@ var _ Tenants = &k8sTenants{}
 func NewK8sFromEnvironment() (*k8sTenants, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, err
+		kubeconfig := clientcmd.NewDefaultClientConfigLoadingRules().GetDefaultFilename()
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	dynClient, err := dynamic.NewForConfig(config)

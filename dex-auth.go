@@ -109,7 +109,7 @@ func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 	opts := []oauth2.AuthCodeOption{
 		oauth2.AccessTypeOffline,
 	}
-	if tenantId := r.Form.Get(tenancy.TenantIdQueryParamName); tenantId != "" {
+	if tenantId := r.URL.Query().Get(tenancy.TenantIdQueryParamName); tenantId != "" {
 		opts = append(opts, tenancy.OauthAddTenantId(tenancy.TenantId(tenantId)))
 	}
 

@@ -10,6 +10,7 @@ RUN mkdir -p /app/bin
 COPY ./bin/linux/amd64/dex-k8s-authenticator /app/bin/dex-k8s-authenticator
 COPY html /app/html
 COPY templates /app/templates
+COPY templates /app/original-templates
 
 # Add any required certs/key by mounting a volume on /certs - Entrypoint will copy them and run update-ca-certificates at startup
 RUN mkdir -p /certs

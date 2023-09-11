@@ -270,11 +270,11 @@ func start_app(config Config) {
 		if err != nil {
 			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
 		}
-		log.Printf("Starting with multi-tenancy enabled on path %s", tenantBasePath)
+		log.Printf("Starting with multi-tenancy enabled at: %s", tenantBasePath)
 		r := mux.NewRouter().PathPrefix(tenantBasePath).Subrouter()
 		r.HandleFunc("/{tenantId}", NewTenancyHandler(
-			tenants, &config, templates.Lookup("index-multitenant.html")))
-		http.Handle(tenantBasePath, r)
+			tenants, &config, getTenancyIndexTemplate()))
+		http.Handle(tenantBasePath+"/", r)
 	}
 
 	// Setup async auth service and build routes
@@ -357,6 +357,9 @@ var RootCmd = &cobra.Command{
 	Short: "Dex Kubernetes Authenticator",
 	Long:  `Dex Kubernetes Authenticator provides a web-interface to generate a kubeconfig file based on a selected Kubernetes cluster. One or more clusters can be defined in the configuration file.`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// Allow enabling with env variable
+		_ = viper.BindEnv("Enable_Multi_Tenancy", "ENABLE_MULTI_TENANCY")
 
 		var config Config
 		err := viper.Unmarshal(&config)
