@@ -1,4 +1,4 @@
-FROM alpine:3.12.9
+FROM alpine:3.18.3
 # Dex connectors, such as GitHub and Google logins require root certificates.
 # Proper installations should manage those certificates, but it's a bad user
 # experience when this doesn't work out of the box.
