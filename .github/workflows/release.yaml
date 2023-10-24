@@ -15,14 +15,16 @@ jobs:
       RELEASE_VERSION: ${{ steps.set_version.outputs.RELEASE_VERSION }}
     steps:
     - name: Set RELEASE_VERSION from tag
-      id: set_version
       if: github.event_name == 'push'
-      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
     - name: Set RELEASE_VERSION from workflow input
-      id: set_version
       if: github.event_name == 'workflow_dispatch'
-      run: echo "RELEASE_VERSION=${{ github.event.inputs.releaseVersion }}" >> $GITHUB_OUTPUT
+      run: echo "RELEASE_VERSION=${{ github.event.inputs.releaseVersion }}" >> $GITHUB_ENV
+
+    - name: Output RELEASE_VERSION
+      id: set_version
+      run: echo "RELEASE_VERSION=${{ env.RELEASE_VERSION }}" >> $GITHUB_OUTPUT
 
 
   publish-image:
@@ -36,7 +38,7 @@ jobs:
         uses: asdf-vm/actions/setup@v1
       - name: Granting private modules access
         run: |
-          git config --global url."https://${{ secrets.CI_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ secrets.MESOSPHERECI_USER_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -45,7 +47,7 @@ jobs:
       - name: Build container image
         run: make container
         env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MESOSPHERECI_USER_TOKEN }}
           TAG: ${{ needs.set-env.outputs.RELEASE_VERSION }}
       - name: Push container image
         run: make push-image
