@@ -20,10 +20,13 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
+	"github.com/gorilla/mux"
 	"github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage"
 	memstorage "github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage/memory"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+
+	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 )
 
 var (
@@ -95,6 +98,7 @@ type Config struct {
 	Hmac_Secret                      string
 	PluginVersion                    string
 	UseClusterHostnameForClusterName bool
+	Enable_Multi_Tenancy             bool
 }
 
 func substituteEnvVars(text string) string {
@@ -230,8 +234,7 @@ func start_app(config Config) {
 		base_redirect_uri, err := url.Parse(cluster.Redirect_URI)
 
 		if err != nil {
-			fmt.Errorf("Parsing redirect_uri address: %v", err)
-			os.Exit(1)
+			log.Fatalf("Parsing redirect_uri address: %v", err)
 		}
 
 		if base_redirect_uri.Path != commonCallbackPath {
@@ -260,6 +263,30 @@ func start_app(config Config) {
 	log.Printf("Registered static assets handler at: %s", static_uri)
 
 	http.Handle(static_uri, http.StripPrefix(static_uri, fs))
+
+	if config.Enable_Multi_Tenancy {
+		tenants, err := tenancy.NewK8sFromEnvironment()
+		if err != nil {
+			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
+		}
+		log.Printf("Starting with multi-tenancy enabled")
+
+		r := mux.NewRouter()
+
+		tenantWorkspaceBasePath := path.Join(config.Web_Path_Prefix, "workspace")
+		wsRouter := r.PathPrefix(tenantWorkspaceBasePath).Subrouter()
+		wsRouter.HandleFunc("/{tenantId}", NewTenancyHandler(
+			tenants, &config, getTenancyTemplate("index-multitenant.html")))
+		http.Handle(tenantWorkspaceBasePath+"/", wsRouter)
+		log.Printf("Registered tenant kubeconfig handler at: %s", tenantWorkspaceBasePath)
+
+		tenantLandingBasePath := path.Join(config.Web_Path_Prefix, "landing")
+		landingRouter := r.PathPrefix(tenantLandingBasePath).Subrouter()
+		landingRouter.HandleFunc("/{tenantId}", NewLandingHandler(
+			tenants, &config, getTenancyTemplate("landing-multitenant.html")))
+		http.Handle(tenantLandingBasePath+"/", landingRouter)
+		log.Printf("Registered tenant landing handler at: %s", tenantLandingBasePath)
+	}
 
 	// Setup async auth service and build routes
 	stg := memstorage.New(false)
@@ -341,6 +368,9 @@ var RootCmd = &cobra.Command{
 	Short: "Dex Kubernetes Authenticator",
 	Long:  `Dex Kubernetes Authenticator provides a web-interface to generate a kubeconfig file based on a selected Kubernetes cluster. One or more clusters can be defined in the configuration file.`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		// Allow enabling with env variable
+		_ = viper.BindEnv("Enable_Multi_Tenancy", "ENABLE_MULTI_TENANCY")
 
 		var config Config
 		err := viper.Unmarshal(&config)

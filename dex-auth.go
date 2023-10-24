@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
+
+	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 )
 
 const (
@@ -104,7 +106,14 @@ func (cluster *Cluster) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Handling login-uri for: %s", cluster.Name)
-	authCodeURL := cluster.oauth2Config(scopes).AuthCodeURL(exampleAppState, oauth2.AccessTypeOffline)
+	opts := []oauth2.AuthCodeOption{
+		oauth2.AccessTypeOffline,
+	}
+	if tenantId := r.URL.Query().Get(tenancy.TenantIdQueryParamName); tenantId != "" {
+		opts = append(opts, tenancy.OauthAddTenantId(tenancy.TenantId(tenantId)))
+	}
+
+	authCodeURL := cluster.oauth2Config(scopes).AuthCodeURL(exampleAppState, opts...)
 
 	// Record the name of cluster
 	http.SetCookie(w, &http.Cookie{
@@ -179,7 +188,7 @@ func (cluster *Cluster) handleCallback(w http.ResponseWriter, r *http.Request) {
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
 		cluster.renderHTMLError(w, userErrorMsg, http.StatusInternalServerError)
-		log.Printf("handleCallback: no id_token in response: %q", token)
+		log.Printf("handleCallback: no id_token in response: %v", token)
 		return
 	}
 
