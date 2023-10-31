@@ -79,15 +79,16 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string, 
 	register("init", basePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, scopes))
 	register("callback", basePrefix, kaal.CallbackEndpoint, s.AuthCallback)
 	register("query", basePrefix, kaal.QueryEndpoint, s.Query)
+	register("check token", basePrefix, kaal.CheckEndpoint, s.CheckToken)
 
 	for _, cluster := range allClusters {
 		clusterBasePrefix := getClusterAsyncAuthURL(basePrefix, cluster.Name)
-		register(fmt.Sprintf("init %q", cluster.Name), clusterBasePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, cluster.Scopes))
-		register(fmt.Sprintf("callback %q", cluster.Name), clusterBasePrefix, kaal.CallbackEndpoint, s.AuthCallback)
-		register(fmt.Sprintf("query %q", cluster.Name), clusterBasePrefix, kaal.QueryEndpoint, s.Query)
+		register(fmt.Sprintf("%q init", cluster.Name), clusterBasePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, cluster.Scopes))
+		register(fmt.Sprintf("%q callback", cluster.Name), clusterBasePrefix, kaal.CallbackEndpoint, s.AuthCallback)
+		register(fmt.Sprintf("%q query", cluster.Name), clusterBasePrefix, kaal.QueryEndpoint, s.Query)
+		register(fmt.Sprintf("%q check token", cluster.Name), clusterBasePrefix, kaal.CheckEndpoint, s.CheckToken)
 	}
 
-	register("check token", basePrefix, kaal.CheckEndpoint, s.CheckToken)
 	register("plugin instructions", basePrefix, "/plugin", cluster.pluginController)
 	// register("plugin data", basePrefix, "/plugin/data/json", cluster.getInstructionDataJSON)
 	register("plugin instructions update", basePrefix, "/plugin/data", cluster.Config.renderInstructions)
