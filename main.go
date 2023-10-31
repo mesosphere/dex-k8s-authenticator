@@ -298,7 +298,7 @@ func start_app(config Config) {
 	// Hack(jr): We only support one provider in konvoy and it is not necessary to identify
 	// cluster scope in this context (all clusters should use the same provider).
 	cluster := &config.Clusters[0]
-	SetupAsyncAuth(cluster, &stg, config.Web_Path_Prefix)
+	SetupAsyncAuth(cluster, &stg, config.Web_Path_Prefix, config.Clusters)
 
 	// Determine whether to use TLS or not
 	switch listenURL.Scheme {
