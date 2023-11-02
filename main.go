@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	dkaoidc "github.com/mesosphere/dex-k8s-authenticator/pkg/oidc"
 	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 )
 
@@ -73,7 +74,7 @@ type Cluster struct {
 	K8s_Ca_Pem          string
 	Static_Context_Name bool
 
-	Verifier       *oidc.IDTokenVerifier
+	Verifier       dkaoidc.Verifier
 	Provider       *oidc.Provider
 	OfflineAsScope bool
 	Client         *http.Client
@@ -202,11 +203,13 @@ func start_app(config Config) {
 
 		cluster.Provider = provider
 
-		log.Printf("Verifying client %s", cluster.Client_ID)
+		audiences := dkaoidc.GetClusterAudiences(cluster.Client_ID, cluster.Scopes)
+		log.Printf("Verifying client %s with audiences %q", cluster.Client_ID, audiences)
 
-		verifier := provider.Verifier(&oidc.Config{ClientID: cluster.Client_ID})
-
-		cluster.Verifier = verifier
+		cluster.Verifier = dkaoidc.NewAudienceVerifier(
+			cluster.Provider.Verifier(&oidc.Config{ClientID: cluster.Client_ID}),
+			audiences,
+		)
 
 		if err := provider.Claims(&s); err != nil {
 			log.Fatalf("Failed to parse provider scopes_supported: %v", err)
