@@ -22,4 +22,7 @@ type Tenants interface {
 	// FilterClusterNames returns list of cluster names (from DKA configuration) that belong to
 	// given tenant id.
 	FilterClusterNames(ctx context.Context, tenantId TenantId, names []string) ([]string, error)
+	// GetTenantsByCluster returns list of all known clusters and theirs resolved
+	// tenatn IDs
+	GetTenantsByCluster(ctx context.Context) (map[string]*Tenant, error)
 }

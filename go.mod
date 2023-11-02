@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/gorilla/mux v1.8.0
-	github.com/mesosphere/konvoy-async-auth v0.1.4
+	github.com/mesosphere/konvoy-async-auth v0.1.5
 	github.com/spf13/cast v1.5.0
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.11.0
@@ -15,3 +15,5 @@ require (
 	k8s.io/client-go v0.28.1
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
 )
+
+// replace github.com/mesosphere/konvoy-async-auth => ../konvoy-async-auth

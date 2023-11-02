@@ -80,6 +80,7 @@ type Cluster struct {
 	Client         *http.Client
 	Redirect_URI   string
 	Config         Config
+	TenantId       tenancy.TenantId
 }
 
 // Define our configuration
@@ -178,6 +179,37 @@ func start_app(config Config) {
 
 	commonCallbackPath := path.Join(config.Web_Path_Prefix, "callback")
 
+	tenantsByCluster := map[string]*tenancy.Tenant{}
+	if config.Enable_Multi_Tenancy {
+		tenants, err := tenancy.NewK8sFromEnvironment()
+		if err != nil {
+			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
+		}
+		log.Printf("Starting with multi-tenancy enabled")
+
+		tenantsByCluster, err = tenants.GetTenantsByCluster(context.Background())
+		if err != nil {
+			log.Fatalf("failed to load all clusters tenancy info: %s", err)
+		}
+		log.Printf("loaded tenants by cluster %#v", tenantsByCluster)
+
+		r := mux.NewRouter()
+
+		tenantWorkspaceBasePath := path.Join(config.Web_Path_Prefix, "workspace")
+		wsRouter := r.PathPrefix(tenantWorkspaceBasePath).Subrouter()
+		wsRouter.HandleFunc("/{tenantId}", NewTenancyHandler(
+			tenants, &config, getTenancyTemplate("index-multitenant.html")))
+		http.Handle(tenantWorkspaceBasePath+"/", wsRouter)
+		log.Printf("Registered tenant kubeconfig handler at: %s", tenantWorkspaceBasePath)
+
+		tenantLandingBasePath := path.Join(config.Web_Path_Prefix, "landing")
+		landingRouter := r.PathPrefix(tenantLandingBasePath).Subrouter()
+		landingRouter.HandleFunc("/{tenantId}", NewLandingHandler(
+			tenants, &config, getTenancyTemplate("landing-multitenant.html")))
+		http.Handle(tenantLandingBasePath+"/", landingRouter)
+		log.Printf("Registered tenant landing handler at: %s", tenantLandingBasePath)
+	}
+
 	// Generate handlers for each cluster
 	for i, _ := range config.Clusters {
 		cluster := config.Clusters[i]
@@ -252,6 +284,11 @@ func start_app(config Config) {
 		http.HandleFunc(login_uri, cluster.handleLogin)
 		log.Printf("Registered login handler at: %s", login_uri)
 
+		if tenant, ok := tenantsByCluster[cluster.Name]; ok {
+			log.Printf("Cluster %q tenant id %q\n", cluster.Name, tenant.ID)
+			cluster.TenantId = tenant.ID
+		}
+
 		config.Clusters[i] = cluster
 	}
 
@@ -267,30 +304,6 @@ func start_app(config Config) {
 
 	http.Handle(static_uri, http.StripPrefix(static_uri, fs))
 
-	if config.Enable_Multi_Tenancy {
-		tenants, err := tenancy.NewK8sFromEnvironment()
-		if err != nil {
-			log.Fatalf("failed to initialize tenancy k8s client: %s", err)
-		}
-		log.Printf("Starting with multi-tenancy enabled")
-
-		r := mux.NewRouter()
-
-		tenantWorkspaceBasePath := path.Join(config.Web_Path_Prefix, "workspace")
-		wsRouter := r.PathPrefix(tenantWorkspaceBasePath).Subrouter()
-		wsRouter.HandleFunc("/{tenantId}", NewTenancyHandler(
-			tenants, &config, getTenancyTemplate("index-multitenant.html")))
-		http.Handle(tenantWorkspaceBasePath+"/", wsRouter)
-		log.Printf("Registered tenant kubeconfig handler at: %s", tenantWorkspaceBasePath)
-
-		tenantLandingBasePath := path.Join(config.Web_Path_Prefix, "landing")
-		landingRouter := r.PathPrefix(tenantLandingBasePath).Subrouter()
-		landingRouter.HandleFunc("/{tenantId}", NewLandingHandler(
-			tenants, &config, getTenancyTemplate("landing-multitenant.html")))
-		http.Handle(tenantLandingBasePath+"/", landingRouter)
-		log.Printf("Registered tenant landing handler at: %s", tenantLandingBasePath)
-	}
-
 	// Setup async auth service and build routes
 	stg := memstorage.New(false)
 	gc := storage.NewGC(&stg, time.Minute, false, debug)
@@ -301,7 +314,7 @@ func start_app(config Config) {
 	// Hack(jr): We only support one provider in konvoy and it is not necessary to identify
 	// cluster scope in this context (all clusters should use the same provider).
 	cluster := &config.Clusters[0]
-	SetupAsyncAuth(cluster, &stg, config.Web_Path_Prefix, config.Clusters)
+	SetupAsyncAuth(cluster, &stg, config.Web_Path_Prefix, config.Clusters, tenantsByCluster)
 
 	// Determine whether to use TLS or not
 	switch listenURL.Scheme {
