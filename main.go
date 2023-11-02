@@ -374,19 +374,14 @@ var RootCmd = &cobra.Command{
 
 		// Allow enabling with env variable
 		_ = viper.BindEnv("Enable_Multi_Tenancy", "ENABLE_MULTI_TENANCY")
+		_ = viper.BindEnv("Hmac_Secret", "DKA_HMAC_SECRET")
 
 		var config Config
 		err := viper.Unmarshal(&config)
 		if err != nil {
 			log.Fatalf("Unable to decode configuration into struct, %v", err)
 		}
-
-		original := reflect.ValueOf(config)
-		copy := reflect.New(original.Type()).Elem()
-		substituteEnvVarsRecursive(copy, original)
-
-		// Start the app
-		start_app(copy.Interface().(Config))
+		start_app(config)
 
 		// Fallback if no args specified
 		cmd.HelpFunc()(cmd, args)
