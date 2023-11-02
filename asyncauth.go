@@ -370,22 +370,18 @@ func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, 
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, config.Web_Path_Prefix)
 
-	kUser := KConfigUser{
-		Name:    profileName,
-		AuthURL: asyncAuthURL,
-		Command: binaryPath,
-	}
-
 	// In Konvoy, we assume that the first cluster in the configuration (enforced by the initContainer)
 	// is also the iDP host (dex). There is also logic which accounts for custom CAs. If this string
 	// is empty, we can assume that we are using a well known CA; and thus can rely on the system
 	// CA pool for verification
+	managementClusterCACert := ""
 	if config.getFirstClusterOrPanic().K8s_Ca_Pem != "" {
-		kUser.CertificateData = base64.StdEncoding.EncodeToString([]byte(config.getFirstClusterOrPanic().K8s_Ca_Pem))
+		managementClusterCACert = base64.StdEncoding.EncodeToString([]byte(config.getFirstClusterOrPanic().K8s_Ca_Pem))
 	}
 
 	var kClusters []KConfigCluster
 	var kContexts []KConfigContext
+	var kUsers []KConfigUser
 	for _, cluster := range config.Clusters {
 		parsed, _ = url.Parse(cluster.K8s_Master_URI)
 		clusterName := parsed.Hostname()
@@ -398,10 +394,19 @@ func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, 
 			CertificateData: caData,
 			Server:          cluster.K8s_Master_URI,
 		})
+		kUser := KConfigUser{
+			Name:    fmt.Sprintf("%s-%s", profileName, clusterName),
+			AuthURL: getClusterAsyncAuthURL(asyncAuthURL, cluster.Name),
+			Command: binaryPath,
+		}
+		if managementClusterCACert != "" {
+			kUser.CertificateData = managementClusterCACert
+		}
+		kUsers = append(kUsers, kUser)
 		kContexts = append(kContexts, KConfigContext{
 			Name:    fmt.Sprintf("%s-%s", profileName, clusterName),
 			Cluster: clusterName,
-			User:    profileName,
+			User:    kUser.Name,
 		})
 	}
 
@@ -410,7 +415,7 @@ func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, 
 		CurrentContext: kContexts[0].Name,
 		Clusters:       kClusters,
 		Contexts:       kContexts,
-		Users:          []KConfigUser{kUser},
+		Users:          kUsers,
 	}
 
 	var output bytes.Buffer
