@@ -14,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/coreos/go-oidc"
+	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
 	"github.com/mesosphere/konvoy-async-auth/pkg/kaal"
 	asyncauth "github.com/mesosphere/konvoy-async-auth/pkg/kaal/server"
 	"github.com/mesosphere/konvoy-async-auth/pkg/kaal/server/storage"
@@ -56,7 +57,13 @@ type FlatProviderMap struct {
 	Clusters []ClusterJSON `json:"clusters"`
 }
 
-func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string, allClusters []Cluster) *asyncauth.KonvoyAsyncAuthServer {
+func SetupAsyncAuth(
+	cluster *Cluster,
+	st storage.TokenStore,
+	basePrefix string,
+	allClusters []Cluster,
+	tenantsByCluster map[string]*tenancy.Tenant,
+) *asyncauth.KonvoyAsyncAuthServer {
 	scopes := cluster.Scopes
 	if len(scopes) == 0 {
 		scopes = []string{"openid", "profile", "email", "groups"}
@@ -76,14 +83,19 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string, 
 		Storage:     st,
 		OIDCContext: ctx,
 	}
-	register("init", basePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, scopes))
+	register("init", basePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, scopes, nil))
 	register("callback", basePrefix, kaal.CallbackEndpoint, s.AuthCallback)
 	register("query", basePrefix, kaal.QueryEndpoint, s.Query)
 	register("check token", basePrefix, kaal.CheckEndpoint, s.CheckToken)
 
 	for _, cluster := range allClusters {
 		clusterBasePrefix := getClusterAsyncAuthURL(basePrefix, cluster.Name)
-		register(fmt.Sprintf("%q init", cluster.Name), clusterBasePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, cluster.Scopes))
+		register(
+			fmt.Sprintf("%q init", cluster.Name),
+			clusterBasePrefix,
+			kaal.InitEndpoint,
+			asyncInitWithScopes(s, cluster.Scopes, tenantsByCluster[cluster.Name]),
+		)
 		register(fmt.Sprintf("%q query", cluster.Name), clusterBasePrefix, kaal.QueryEndpoint, s.Query)
 		register(fmt.Sprintf("%q check token", cluster.Name), clusterBasePrefix, kaal.CheckEndpoint, s.CheckToken)
 	}
@@ -103,9 +115,15 @@ func getClusterAsyncAuthURL(basePathOrURL, clusterName string) string {
 
 // asyncInitWithScopes prepares scopes for async auth request if scopes are different
 // per cluster.
-func asyncInitWithScopes(s *asyncauth.KonvoyAsyncAuthServer, scopes []string) http.HandlerFunc {
+func asyncInitWithScopes(s *asyncauth.KonvoyAsyncAuthServer, scopes []string, tenant *tenancy.Tenant) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.AsyncInit(w, r, oauth2.SetAuthURLParam("scope", strings.Join(scopes, " ")))
+		opts := []oauth2.AuthCodeOption{
+			oauth2.SetAuthURLParam("scope", strings.Join(scopes, " ")),
+		}
+		if tenant != nil {
+			opts = append(opts, tenancy.OauthAddTenantId(tenant.ID))
+		}
+		s.AsyncInit(w, r, opts...)
 	}
 }
 

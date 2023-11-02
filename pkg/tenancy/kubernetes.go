@@ -30,6 +30,9 @@ var (
 
 const (
 	workspaceNameAnnotation = "kommander.mesosphere.io/display-name"
+
+	// DKA stores management cluster under `kubernetes-cluster` name.
+	managementClusterName = "kubernetes-cluster"
 )
 
 var _ Tenants = &k8sTenants{}
@@ -89,16 +92,7 @@ func (t *k8sTenants) Get(ctx context.Context, tenantId TenantId) (*Tenant, error
 		return nil, err
 	}
 
-	tenant := &Tenant{
-		ID:   tenantId,
-		Name: string(tenantId),
-	}
-
-	if name, ok := workspace.GetAnnotations()[workspaceNameAnnotation]; ok {
-		tenant.Name = name
-	}
-
-	return tenant, nil
+	return tenantFromWorkspace(workspace), nil
 }
 
 // FilterClusterNames gets the list of KC names for given tenant (via Worksspace)
@@ -137,4 +131,56 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 	}
 
 	return tenantNames, nil
+}
+
+func (t *k8sTenants) GetTenantsByCluster(ctx context.Context) (map[string]*Tenant, error) {
+	kcList, err := t.client.Resource(kommanderClusterGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	wsList, err := t.client.Resource(workspaceGVR).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	tenantsByCluster := map[string]*Tenant{}
+
+	for _, kc := range kcList.Items {
+		// No tenancy is for management cluster which is stored in the dka config
+		// as kubernetes-cluster
+		if kc.GetName() == managementClusterName {
+			continue
+		}
+
+		for i, workspace := range wsList.Items {
+			namespaceName, found, err := unstructured.NestedString(workspace.Object, "status", "namespaceRef", "name")
+			if err != nil {
+				return nil, err
+			}
+
+			if !found {
+				continue
+			}
+
+			if namespaceName == kc.GetNamespace() {
+				tenantsByCluster[kc.GetName()] = tenantFromWorkspace(&wsList.Items[i])
+			}
+		}
+	}
+
+	return tenantsByCluster, nil
+}
+
+func tenantFromWorkspace(u *unstructured.Unstructured) *Tenant {
+	// workspace.name is the tenant id
+	tenant := &Tenant{
+		ID:   TenantId(u.GetName()),
+		Name: u.GetName(),
+	}
+
+	if name, ok := u.GetAnnotations()[workspaceNameAnnotation]; ok {
+		tenant.Name = name
+	}
+	return tenant
 }

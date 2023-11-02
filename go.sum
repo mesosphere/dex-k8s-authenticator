@@ -325,8 +325,8 @@ github.com/mattn/go-isatty v0.0.11/go.mod h1:PhnuNfih5lzO57/f3n+odYbM4JtupLOxQOA
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
-github.com/mesosphere/konvoy-async-auth v0.1.4 h1:STVLC68i5uW0pQ/c552xx7MduAcxLaXHDgkQnNnMqCA=
-github.com/mesosphere/konvoy-async-auth v0.1.4/go.mod h1:4MY6qZsxYlvfDffmGYQIYBtz1IwObw+DQla62eBp9vs=
+github.com/mesosphere/konvoy-async-auth v0.1.5 h1:VrqbhX3f7of3OxAiLmUNhmQ7Lyk4Uy+3g1uemjpzDPg=
+github.com/mesosphere/konvoy-async-auth v0.1.5/go.mod h1:4MY6qZsxYlvfDffmGYQIYBtz1IwObw+DQla62eBp9vs=
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
 github.com/mitchellh/cli v1.1.0/go.mod h1:xcISNoH86gajksDmfB23e/pu+B+GeFRMYmoHXxx3xhI=
