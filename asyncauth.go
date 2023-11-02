@@ -84,13 +84,11 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string, 
 	for _, cluster := range allClusters {
 		clusterBasePrefix := getClusterAsyncAuthURL(basePrefix, cluster.Name)
 		register(fmt.Sprintf("%q init", cluster.Name), clusterBasePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, cluster.Scopes))
-		register(fmt.Sprintf("%q callback", cluster.Name), clusterBasePrefix, kaal.CallbackEndpoint, s.AuthCallback)
 		register(fmt.Sprintf("%q query", cluster.Name), clusterBasePrefix, kaal.QueryEndpoint, s.Query)
 		register(fmt.Sprintf("%q check token", cluster.Name), clusterBasePrefix, kaal.CheckEndpoint, s.CheckToken)
 	}
 
 	register("plugin instructions", basePrefix, "/plugin", cluster.pluginController)
-	// register("plugin data", basePrefix, "/plugin/data/json", cluster.getInstructionDataJSON)
 	register("plugin instructions update", basePrefix, "/plugin/data", cluster.Config.renderInstructions)
 	register("plugin provider data", basePrefix, "/plugin/providers", cluster.Config.getClustersByProviders)
 	register("kubeconfig download", basePrefix, "/plugin/kubeconfig", cluster.Config.downloadKubeConfigUnix)
@@ -175,41 +173,6 @@ func renderPluginInstructions(w http.ResponseWriter, data TemplateData) error {
 func getDownloadURL(url, platform, version, binary string) string {
 	// TODO: make this more readable
 	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, programName, version, binary)
-}
-
-func (cluster *Cluster) getInstructionDataJSON(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		cluster.renderHTMLError(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	profileName := req.URL.Query().Get("profileName")
-	if profileName == "" {
-		profileName = defaultProfileName
-	}
-
-	// use the redirect url to determine base URL
-	parsed, _ := url.Parse(cluster.Redirect_URI)
-	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
-	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
-
-	data := map[string]string{
-		"clusterName":  cluster.Name,
-		"profileName":  profileName,
-		"asyncAuthURL": asyncAuthURL,
-	}
-
-	j, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("could not marshal json: %v", err)
-		cluster.renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(j)
 }
 
 func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Request) {
