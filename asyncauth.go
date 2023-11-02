@@ -56,7 +56,7 @@ type FlatProviderMap struct {
 	Clusters []ClusterJSON `json:"clusters"`
 }
 
-func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) *asyncauth.KonvoyAsyncAuthServer {
+func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string, allClusters []Cluster) *asyncauth.KonvoyAsyncAuthServer {
 	scopes := cluster.Scopes
 	if len(scopes) == 0 {
 		scopes = []string{"openid", "profile", "email", "groups"}
@@ -68,7 +68,6 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) 
 			ClientID:     cluster.Client_ID,
 			ClientSecret: cluster.Client_Secret,
 			Endpoint:     cluster.Provider.Endpoint(),
-			Scopes:       scopes,
 			RedirectURL:  getAsyncRedirectURI(cluster.Redirect_URI, basePrefix),
 		},
 		Provider:    cluster.Provider,
@@ -77,18 +76,39 @@ func SetupAsyncAuth(cluster *Cluster, st storage.TokenStore, basePrefix string) 
 		Storage:     st,
 		OIDCContext: ctx,
 	}
-	register("init", basePrefix, kaal.InitEndpoint, s.AsyncInit)
+	register("init", basePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, scopes))
 	register("callback", basePrefix, kaal.CallbackEndpoint, s.AuthCallback)
 	register("query", basePrefix, kaal.QueryEndpoint, s.Query)
 	register("check token", basePrefix, kaal.CheckEndpoint, s.CheckToken)
+
+	for _, cluster := range allClusters {
+		clusterBasePrefix := getClusterAsyncAuthURL(basePrefix, cluster.Name)
+		register(fmt.Sprintf("%q init", cluster.Name), clusterBasePrefix, kaal.InitEndpoint, asyncInitWithScopes(s, cluster.Scopes))
+		register(fmt.Sprintf("%q callback", cluster.Name), clusterBasePrefix, kaal.CallbackEndpoint, s.AuthCallback)
+		register(fmt.Sprintf("%q query", cluster.Name), clusterBasePrefix, kaal.QueryEndpoint, s.Query)
+		register(fmt.Sprintf("%q check token", cluster.Name), clusterBasePrefix, kaal.CheckEndpoint, s.CheckToken)
+	}
+
 	register("plugin instructions", basePrefix, "/plugin", cluster.pluginController)
-	register("plugin data", basePrefix, "/plugin/data/json", cluster.getInstructionDataJSON)
+	// register("plugin data", basePrefix, "/plugin/data/json", cluster.getInstructionDataJSON)
 	register("plugin instructions update", basePrefix, "/plugin/data", cluster.Config.renderInstructions)
 	register("plugin provider data", basePrefix, "/plugin/providers", cluster.Config.getClustersByProviders)
 	register("kubeconfig download", basePrefix, "/plugin/kubeconfig", cluster.Config.downloadKubeConfigUnix)
 	register("kubeconfig download windows", basePrefix, "/plugin/kubeconfig_windows", cluster.Config.downloadKubeConfigWindows)
 
 	return s
+}
+
+func getClusterAsyncAuthURL(basePathOrURL, clusterName string) string {
+	return fmt.Sprintf("%s/async-auth/%s", strings.TrimRight(basePathOrURL, "/"), clusterName)
+}
+
+// asyncInitWithScopes prepares scopes for async auth request if scopes are different
+// per cluster.
+func asyncInitWithScopes(s *asyncauth.KonvoyAsyncAuthServer, scopes []string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.AsyncInit(w, r, oauth2.SetAuthURLParam("scope", strings.Join(scopes, " ")))
+	}
 }
 
 func getAsyncRedirectURI(u, base string) string {
@@ -231,6 +251,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 	parsed, _ := url.Parse(config.getFirstClusterOrPanic().Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
+	clusterAsyncAuthURL := getClusterAsyncAuthURL(asyncAuthURL, cluster.Name)
 
 	parsed, _ = url.Parse(cluster.K8s_Master_URI)
 	clusterName := parsed.Hostname()
@@ -242,7 +263,7 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 		"windowsURL":    getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
 		"installPath":   installPath,
 		"runPath":       runPath,
-		"asyncAuthURL":  asyncAuthURL,
+		"asyncAuthURL":  clusterAsyncAuthURL,
 		"clusterName":   clusterName,
 		"profileName":   profileName,
 		"kubeAPI":       cluster.K8s_Master_URI,
@@ -272,7 +293,10 @@ func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Re
 	for _, cluster := range config.Clusters {
 		parsed, _ := url.Parse(cluster.K8s_Master_URI)
 		appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
-		asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
+		asyncAuthURL := getClusterAsyncAuthURL(
+			fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix),
+			cluster.Name,
+		)
 
 		m[cluster.Issuer] = append(m[cluster.Issuer], ClusterJSON{
 			Name:            cluster.Name,

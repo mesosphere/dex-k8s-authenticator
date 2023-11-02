@@ -93,6 +93,14 @@ func (config *Config) getFirstClusterOrPanic() *Cluster {
 	if len(config.Clusters) < 1 {
 		panic("no clusters have been defined")
 	}
+
+	// In DKP the `kubernetes-cluster` name is a special management cluster name.
+	for _, cluster := range config.Clusters {
+		if cluster.Name == "kubernetes-cluster" {
+			return &cluster
+		}
+	}
+
 	return &config.Clusters[0]
 }
 
