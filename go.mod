@@ -15,5 +15,3 @@ require (
 	k8s.io/client-go v0.28.1
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
 )
-
-// replace github.com/mesosphere/konvoy-async-auth => ../konvoy-async-auth
