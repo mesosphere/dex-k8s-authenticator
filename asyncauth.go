@@ -40,6 +40,7 @@ type TemplateData struct {
 	DarwinURL    string
 	LinuxURL     string
 	WindowsURL   string
+	TenantId     string
 }
 
 type ClusterJSON struct {
@@ -169,6 +170,7 @@ func (cluster *Cluster) pluginController(w http.ResponseWriter, r *http.Request)
 		LinuxURL:   getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
 		DarwinURL:  getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
 		WindowsURL: getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
+		TenantId:   r.URL.Query().Get(tenancy.TenantIdQueryParamName),
 	}
 
 	if err := renderPluginInstructions(w, data); err != nil {
@@ -269,9 +271,15 @@ func (config *Config) getClustersByProviders(w http.ResponseWriter, req *http.Re
 		return
 	}
 
+	includeCluster := getClusterTenantIdFromRequestFilter(req)
+
 	m := make(map[string][]ClusterJSON)
 
 	for _, cluster := range config.Clusters {
+		if !includeCluster(cluster) {
+			continue
+		}
+
 		parsed, _ := url.Parse(cluster.K8s_Master_URI)
 		appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 		asyncAuthURL := getClusterAsyncAuthURL(
@@ -345,7 +353,7 @@ func (config *Config) downloadKubeConfig(w http.ResponseWriter, req *http.Reques
 		profileName = defaultProfileName
 	}
 
-	kubeconfig, err := config.renderKubeconfig(profileName, binaryPath)
+	kubeconfig, err := config.renderKubeconfig(profileName, binaryPath, getClusterTenantIdFromRequestFilter(req))
 	if err != nil {
 		log.Printf("error rendering kubeconfig: %v", err)
 		config.getFirstClusterOrPanic().renderHTMLError(w, "Internal Server Error", http.StatusInternalServerError)
@@ -365,7 +373,7 @@ func (config *Config) downloadKubeConfigWindows(w http.ResponseWriter, req *http
 	config.downloadKubeConfig(w, req, binaryNameWindows)
 }
 
-func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, error) {
+func (config *Config) renderKubeconfig(profileName, binaryPath string, includeCluster clusterFilter) ([]byte, error) {
 	parsed, _ := url.Parse(config.getFirstClusterOrPanic().Redirect_URI)
 	appURL := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, config.Web_Path_Prefix)
@@ -383,6 +391,10 @@ func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, 
 	var kContexts []KConfigContext
 	var kUsers []KConfigUser
 	for _, cluster := range config.Clusters {
+		if !includeCluster(cluster) {
+			continue
+		}
+
 		parsed, _ = url.Parse(cluster.K8s_Master_URI)
 		clusterName := parsed.Hostname()
 		var caData string
@@ -425,4 +437,23 @@ func (config *Config) renderKubeconfig(profileName, binaryPath string) ([]byte, 
 		return nil, err
 	}
 	return output.Bytes(), err
+}
+
+type clusterFilter func(Cluster) bool
+
+// getClusterTenantIdFromRequestFilter returns a filter function that will
+// return false on clusters that aren't matching the requested tenant-id
+// from the request scope.
+func getClusterTenantIdFromRequestFilter(req *http.Request) clusterFilter {
+	tenantId := req.URL.Query().Get(tenancy.TenantIdQueryParamName)
+	if tenantId != "" {
+		return func(c Cluster) bool {
+			return c.TenantId == tenancy.TenantId(tenantId)
+		}
+	}
+
+	// If no tenant id is provided include all clusters
+	return func(c Cluster) bool {
+		return true
+	}
 }
