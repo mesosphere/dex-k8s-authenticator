@@ -210,6 +210,26 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 	var cluster *Cluster
 	if selectCluster == "" {
 		cluster = config.getFirstClusterOrPanic()
+
+		// If there is only 1 cluster in the multi-tenancy context plugin page
+		// the request from JS will not have a cluster name, but we have to select
+		// a cluster from a workspace instead of rendering the default cluster.
+		includeCluster := getClusterTenantIdFromRequestFilter(req)
+		if !includeCluster(*cluster) {
+			cluster = nil
+			for i, c := range config.Clusters {
+				if includeCluster(c) {
+					cluster = &config.Clusters[i]
+					break
+				}
+			}
+
+			if cluster == nil {
+				log.Println("no cluster found beloging to tenant")
+				config.getFirstClusterOrPanic().renderHTMLError(w, "Bad Request", http.StatusBadRequest)
+				return
+			}
+		}
 	} else {
 		for i, c := range config.Clusters {
 			parsed, _ := url.Parse(c.K8s_Master_URI)
