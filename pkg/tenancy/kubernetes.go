@@ -3,6 +3,7 @@ package tenancy
 import (
 	"context"
 	"fmt"
+	"log"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +34,11 @@ const (
 
 	// DKA stores management cluster under `kubernetes-cluster` name.
 	managementClusterName = "kubernetes-cluster"
+
+	// KommanderCluster for management cluster has different name in k8s api
+	// server vs in DKA config file.
+	managementWorkspaceNamespaceName      = "kommander-workspace"
+	managementClusterKommanderClusterName = "host-cluster"
 )
 
 var _ Tenants = &k8sTenants{}
@@ -97,18 +103,21 @@ func (t *k8sTenants) Get(ctx context.Context, tenantId TenantId) (*Tenant, error
 
 // FilterClusterNames gets the list of KC names for given tenant (via Worksspace)
 // and returns list of cluster names for clusters that are in the namespace.
-func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, names []string) ([]string, error) {
+func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, dkaConfigNames []string) ([]string, error) {
+	log.Printf("FilterClusterNames: %s\n", tenantId)
 	workspace, err := t.client.Resource(workspaceGVR).
 		Get(ctx, string(tenantId), metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("workspace: %s\n", workspace.GetName())
 	namespaceName, found, err := unstructured.NestedString(workspace.Object, "status", "namespaceRef", "name")
 	if err != nil {
 		return nil, err
 	}
 
+	log.Printf("namespaceName: %s\n", namespaceName)
 	if !found {
 		return nil, fmt.Errorf("namespaceRef.name not populated on workspace: %s", string(tenantId))
 	}
@@ -117,19 +126,35 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 	if err != nil {
 		return nil, err
 	}
+	for _, kc := range kcList.Items {
+		log.Printf("kc in the list: %s, %s\n", kc.GetName(), kc.GetNamespace())
+	}
 
 	kcNames := []string{}
 	for _, kc := range kcList.Items {
 		kcNames = append(kcNames, kc.GetName())
 	}
+	log.Printf("kcNames: %v\n", kcNames)
 
 	tenantNames := []string{}
-	for _, name := range names {
-		if slices.Contains(kcNames, name) {
-			tenantNames = append(tenantNames, name)
+	for _, dkaConfigClusterName := range dkaConfigNames {
+		// Management cluster name in the DKA config requires special handling, as
+		// because of historical reasons, the management cluster is stored as
+		// `kubernetes-cluster` in the DKA config, while having name `host-cluster`
+		// in K8s API. For this reason we need to check for presence of different
+		// name.
+		if dkaConfigClusterName == managementClusterName && tenantId == managementWorkspaceNamespaceName {
+			if slices.Contains(kcNames, managementClusterKommanderClusterName) {
+				tenantNames = append(tenantNames, dkaConfigClusterName)
+			}
+		} else {
+			if slices.Contains(kcNames, dkaConfigClusterName) {
+				tenantNames = append(tenantNames, dkaConfigClusterName)
+			}
 		}
 	}
 
+	log.Printf("tenantNames: %v\n", tenantNames)
 	return tenantNames, nil
 }
 
@@ -152,6 +177,8 @@ func (t *k8sTenants) GetTenantsByCluster(ctx context.Context) (map[string]*Tenan
 		if kc.GetName() == managementClusterName {
 			continue
 		}
+
+		log.Printf("cluster: %s\n", kc.GetName())
 
 		for i, workspace := range wsList.Items {
 			namespaceName, found, err := unstructured.NestedString(workspace.Object, "status", "namespaceRef", "name")
