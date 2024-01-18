@@ -27,9 +27,15 @@
       <div class="theme-panel">
         <h2 class="theme-heading">Generate Kubernetes Token</h2>
         <div>
+            {{ if .Clusters }}
             <p>
               Select which cluster you require a token for:
             </p>
+            {{ else }}
+            <p>
+              There are no clusters attached to the workspace.
+            </p>
+            {{ end }}
 
             {{ range $cluster := .Clusters }}
 
