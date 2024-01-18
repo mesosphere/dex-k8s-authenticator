@@ -130,6 +130,11 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 
 	tenantNames := []string{}
 	for _, dkaConfigClusterName := range dkaConfigNames {
+		// Management cluster name in the DKA config requires special handling, as
+		// because of historical reasons, the management cluster is stored as
+		// `kubernetes-cluster` in the DKA config, while having name `host-cluster`
+		// in K8s API. For this reason we need to check for presence of different
+		// name.
 		if dkaConfigClusterName == managementClusterName && tenantId == managementWorkspaceNamespaceName {
 			if slices.Contains(kcNames, managementClusterKommanderClusterName) {
 				tenantNames = append(tenantNames, dkaConfigClusterName)
