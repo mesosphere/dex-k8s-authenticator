@@ -218,6 +218,39 @@ func TestK8sTenantsFilterClusterNames(t *testing.T) {
 			clusterNames:  []string{"kc-1", "kc-2"},
 			expectedNames: []string{"kc-1"},
 		},
+		{
+			name: "it keeps management cluster in cluster name",
+			objs: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "workspaces.kommander.mesosphere.io/v1alpha1",
+						"kind":       "Workspace",
+						"metadata": map[string]interface{}{
+							"name": "kommander-workspace",
+						},
+						"status": map[string]interface{}{
+							"namespaceRef": map[string]interface{}{
+								"name": "kommander-workspace",
+							},
+						},
+					},
+				},
+				// This is
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "kommander.mesosphere.io/v1beta1",
+						"kind":       "KommanderCluster",
+						"metadata": map[string]interface{}{
+							"name":      "host-cluster",
+							"namespace": "kommander-workspace",
+						},
+					},
+				},
+			},
+			tenantId:      tenancy.TenantId("kommander-workspace"),
+			clusterNames:  []string{"kubernetes-cluster", "kc-2"},
+			expectedNames: []string{"kubernetes-cluster"},
+		},
 	}
 
 	for i := range testCases {

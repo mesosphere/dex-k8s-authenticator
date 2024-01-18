@@ -33,6 +33,11 @@ const (
 
 	// DKA stores management cluster under `kubernetes-cluster` name.
 	managementClusterName = "kubernetes-cluster"
+
+	// KommanderCluster for management cluster has different name in k8s api
+	// server vs in DKA config file.
+	managementWorkspaceNamespaceName      = "kommander-workspace"
+	managementClusterKommanderClusterName = "host-cluster"
 )
 
 var _ Tenants = &k8sTenants{}
@@ -97,7 +102,7 @@ func (t *k8sTenants) Get(ctx context.Context, tenantId TenantId) (*Tenant, error
 
 // FilterClusterNames gets the list of KC names for given tenant (via Worksspace)
 // and returns list of cluster names for clusters that are in the namespace.
-func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, names []string) ([]string, error) {
+func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, dkaConfigNames []string) ([]string, error) {
 	workspace, err := t.client.Resource(workspaceGVR).
 		Get(ctx, string(tenantId), metav1.GetOptions{})
 	if err != nil {
@@ -124,9 +129,15 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 	}
 
 	tenantNames := []string{}
-	for _, name := range names {
-		if slices.Contains(kcNames, name) {
-			tenantNames = append(tenantNames, name)
+	for _, dkaConfigClusterName := range dkaConfigNames {
+		if dkaConfigClusterName == managementClusterName && tenantId == managementWorkspaceNamespaceName {
+			if slices.Contains(kcNames, managementClusterKommanderClusterName) {
+				tenantNames = append(tenantNames, dkaConfigClusterName)
+			}
+		} else {
+			if slices.Contains(kcNames, dkaConfigClusterName) {
+				tenantNames = append(tenantNames, dkaConfigClusterName)
+			}
 		}
 	}
 
