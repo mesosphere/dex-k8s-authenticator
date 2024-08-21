@@ -12,7 +12,7 @@ export CGO_ENABLED=0
 export GO111MODULE ?= on
 export GOPRIVATE ?= github.com/mesosphere
 
-KONVOY_ASYNC_AUTH_VERSION ?= v0.1.3
+KONVOY_ASYNC_AUTH_VERSION ?= v0.1.6
 
 all: build
 
