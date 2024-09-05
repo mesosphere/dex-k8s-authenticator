@@ -33,14 +33,15 @@ const (
 )
 
 type TemplateData struct {
-	Config       Config
-	Providers    []FlatProviderMap
-	AsyncAuthURL string
-	KubeAPI      string
-	DarwinURL    string
-	LinuxURL     string
-	WindowsURL   string
-	TenantId     string
+	Config         Config
+	Providers      []FlatProviderMap
+	AsyncAuthURL   string
+	KubeAPI        string
+	DarwinURL      string
+	DarwinAmd64URL string
+	LinuxURL       string
+	WindowsURL     string
+	TenantId       string
 }
 
 type ClusterJSON struct {
@@ -166,11 +167,12 @@ func (cluster *Cluster) pluginController(w http.ResponseWriter, r *http.Request)
 	asyncAuthURL := fmt.Sprintf("%s%s", appURL, cluster.Config.Web_Path_Prefix)
 
 	data := TemplateData{
-		Config:     cluster.Config,
-		LinuxURL:   getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
-		DarwinURL:  getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
-		WindowsURL: getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
-		TenantId:   r.URL.Query().Get(tenancy.TenantIdQueryParamName),
+		Config:         cluster.Config,
+		LinuxURL:       getDownloadURL(asyncAuthURL, "linux_amd64", cluster.Config.PluginVersion, binaryName),
+		DarwinURL:      getDownloadURL(asyncAuthURL, "darwin_arm64", cluster.Config.PluginVersion, binaryName),
+		DarwinAmd64URL: getDownloadURL(asyncAuthURL, "darwin_amd64", cluster.Config.PluginVersion, binaryName),
+		WindowsURL:     getDownloadURL(asyncAuthURL, "windows_amd64", cluster.Config.PluginVersion, binaryNameWindows),
+		TenantId:       r.URL.Query().Get(tenancy.TenantIdQueryParamName),
 	}
 
 	if err := renderPluginInstructions(w, data); err != nil {
@@ -191,8 +193,8 @@ func renderPluginInstructions(w http.ResponseWriter, data TemplateData) error {
 }
 
 func getDownloadURL(url, platform, version, binary string) string {
-	// TODO: make this more readable
-	return fmt.Sprintf("%s%s%s/%s_%s/%s", url, downloadPath, platform, programName, version, binary)
+	binaryPath := "konvoy-async-auth_" + version + "_" + platform + "/" + binary
+	return url + downloadPath + binaryPath
 }
 
 func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Request) {
@@ -260,18 +262,19 @@ func (config *Config) renderInstructions(w http.ResponseWriter, req *http.Reques
 	clusterName := parsed.Hostname()
 
 	data := map[string]string{
-		"webPathPrefix": cluster.Config.Web_Path_Prefix,
-		"linuxURL":      getDownloadURL(asyncAuthURL, "linux", cluster.Config.PluginVersion, binaryName),
-		"darwinURL":     getDownloadURL(asyncAuthURL, "darwin", cluster.Config.PluginVersion, binaryName),
-		"windowsURL":    getDownloadURL(asyncAuthURL, "windows", cluster.Config.PluginVersion, binaryNameWindows),
-		"installPath":   installPath,
-		"runPath":       runPath,
-		"asyncAuthURL":  clusterAsyncAuthURL,
-		"clusterName":   clusterName,
-		"profileName":   profileName,
-		"kubeAPI":       cluster.K8s_Master_URI,
-		"caPem":         cluster.K8s_Ca_Pem,
-		"authCAData":    authCAData,
+		"webPathPrefix":  cluster.Config.Web_Path_Prefix,
+		"linuxURL":       getDownloadURL(asyncAuthURL, "linux_amd64", cluster.Config.PluginVersion, binaryName),
+		"darwinURL":      getDownloadURL(asyncAuthURL, "darwin_arm64", cluster.Config.PluginVersion, binaryName),
+		"darwinAmd64URL": getDownloadURL(asyncAuthURL, "darwin_amd64", cluster.Config.PluginVersion, binaryName),
+		"windowsURL":     getDownloadURL(asyncAuthURL, "windows_amd64", cluster.Config.PluginVersion, binaryNameWindows),
+		"installPath":    installPath,
+		"runPath":        runPath,
+		"asyncAuthURL":   clusterAsyncAuthURL,
+		"clusterName":    clusterName,
+		"profileName":    profileName,
+		"kubeAPI":        cluster.K8s_Master_URI,
+		"caPem":          cluster.K8s_Ca_Pem,
+		"authCAData":     authCAData,
 	}
 
 	w.WriteHeader(http.StatusOK)

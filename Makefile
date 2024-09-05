@@ -12,7 +12,7 @@ export CGO_ENABLED=0
 export GO111MODULE ?= on
 export GOPRIVATE ?= github.com/mesosphere
 
-KONVOY_ASYNC_AUTH_VERSION ?= v0.1.6
+KONVOY_ASYNC_AUTH_VERSION ?= v0.2.0
 
 all: build
 
@@ -24,10 +24,10 @@ get:
 konvoy-async-auth: install-tools
 	@rm -rf _build/konvoy-async-auth*
 	@gh release download $(KONVOY_ASYNC_AUTH_VERSION) -R https://github.com/mesosphere/konvoy-async-auth -D _build/
-	@mkdir -p html/static/downloads/linux html/static/downloads/windows html/static/downloads/darwin
-	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_linux.tar.bz2" -C html/static/downloads/linux
-	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_darwin.tar.bz2" -C html/static/downloads/darwin
-	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_windows.tar.bz2" -C html/static/downloads/windows
+	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_linux_amd64.tar.gz" -C html/static/downloads
+	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_darwin_amd64.tar.gz" -C html/static/downloads
+	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_darwin_arm64.tar.gz" -C html/static/downloads
+	@tar -xjvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_windows_amd64.tar.gz" -C html/static/downloads
 
 .PHONY: build
 build: get konvoy-async-auth install-tools
