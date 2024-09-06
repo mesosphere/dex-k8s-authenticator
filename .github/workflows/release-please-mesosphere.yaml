@@ -17,8 +17,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         id: release-please
-        with:
-          release-type: go
 
       - if: ${{ steps.release-please.outputs.release_created }}
         name: Run release workflow
