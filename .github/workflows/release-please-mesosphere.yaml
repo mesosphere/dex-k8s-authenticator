@@ -1,0 +1,27 @@
+name: release-please-mesosphere
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - mesosphere
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release-please
+
+      - if: ${{ steps.release-please.outputs.release_created }}
+        name: Run release workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: release.yml
+          ref: ${{ steps.release-please.outputs.tag_name }}
+          inputs: '{"releaseVersion":"${{ steps.release-please.outputs.tag_name }}"}'
