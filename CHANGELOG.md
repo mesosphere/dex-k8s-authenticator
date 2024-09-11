@@ -1,6 +1,24 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.0-d2iq (2024-09-09)
+
+## What's Changed
+* feat: bump kaas to v0.2.0 and support arm macOS cli by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/33
+* chore: add dependaboto config by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/35
+* chore: switch to devbox by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/36
+* chore: add tests on PR run by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/37
+* build(deps): bump docker/login-action from 1 to 3 by @dependabot in https://github.com/mesosphere/dex-k8s-authenticator/pull/38
+* build(deps): bump actions/checkout from 2 to 4 by @dependabot in https://github.com/mesosphere/dex-k8s-authenticator/pull/39
+* feat: add release please action for mesosphere branch by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/34
+* fix: add empty .release-please-manifest.json by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/40
+* fix: add initial release version by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/41
+
+## New Contributors
+* @dependabot made their first contribution in https://github.com/mesosphere/dex-k8s-authenticator/pull/38
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.3.4-d2iq...v1.4.0-d2iq
+
 ## [v1.1.0]
 
 ### Added
