@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.1-d2iq (2024-09-12)
+
+## What's Changed
+* release(mesosphere):  v1.4.0-d2iq by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/42
+* chore: add docs for creating release please pr by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/43
+
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.4.0-d2iq...v1.4.1-d2iq
+
 ## 1.4.0-d2iq (2024-09-09)
 
 ## What's Changed
