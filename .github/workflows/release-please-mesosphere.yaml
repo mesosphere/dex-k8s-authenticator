@@ -22,6 +22,6 @@ jobs:
         name: Run release workflow
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: release.yml
+          workflow: release.yaml
           ref: ${{ steps.release-please.outputs.tag_name }}
           inputs: '{"releaseVersion":"${{ steps.release-please.outputs.tag_name }}"}'
