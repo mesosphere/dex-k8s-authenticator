@@ -10,6 +10,11 @@ TAG ?= latest
 export CGO_ENABLED=0
 export GOPRIVATE ?= github.com/mesosphere
 
+GIT_MAIN_BRANCH = mesosphere
+GIT_CURRENT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GITHUB_ORG := $(shell gh repo view --jq '.owner.login' --json owner)
+GITHUB_REPOSITORY := $(shell gh repo view --jq '.name' --json name)
+
 KONVOY_ASYNC_AUTH_VERSION ?= v0.2.0
 
 all: build
@@ -17,6 +22,7 @@ all: build
 .PHONY: konvoy-async-auth
 konvoy-async-auth:
 	@rm -rf _build/konvoy-async-auth*
+	@mkdir -p html/static/downloads
 	@gh release download $(KONVOY_ASYNC_AUTH_VERSION) -R https://github.com/mesosphere/konvoy-async-auth -D _build/
 	@tar -xzvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_linux_amd64.tar.gz" -C html/static/downloads
 	@tar -xzvf "_build/konvoy-async-auth_$(KONVOY_ASYNC_AUTH_VERSION)_darwin_amd64.tar.gz" -C html/static/downloads
@@ -50,3 +56,12 @@ clean:
 	@go clean
 	rm -rf ./bin
 	rm -rf ./_build
+
+.PHONY: release-please
+release-please:
+ifneq ($(GIT_CURRENT_BRANCH),$(GIT_MAIN_BRANCH))
+	$(error "release-please should only be run on the $(GIT_MAIN_BRANCH) branch")
+else
+	release-please release-pr \
+	  --repo-url $(GITHUB_ORG)/$(GITHUB_REPOSITORY) --token "$$(gh auth token)"
+endif
