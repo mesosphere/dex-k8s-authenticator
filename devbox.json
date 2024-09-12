@@ -2,7 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
   "packages": [
     "go@latest",
-    "github-cli@latest"
+    "github-cli@latest",
+    "./hack/flake#release-please"
   ],
   "shell": {
     "init_hook": [
