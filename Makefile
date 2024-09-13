@@ -15,7 +15,7 @@ GIT_CURRENT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 GITHUB_ORG := $(shell gh repo view --jq '.owner.login' --json owner)
 GITHUB_REPOSITORY := $(shell gh repo view --jq '.name' --json name)
 
-KONVOY_ASYNC_AUTH_VERSION ?= v0.2.0
+KONVOY_ASYNC_AUTH_VERSION ?= v0.2.1
 
 all: build
 
