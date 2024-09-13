@@ -2,6 +2,8 @@ module github.com/mesosphere/dex-k8s-authenticator
 
 go 1.23
 
+toolchain go1.23.1
+
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/gorilla/mux v1.8.0
