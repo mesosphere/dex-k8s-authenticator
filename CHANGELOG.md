@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.2-d2iq (2024-09-13)
+
+## What's Changed
+* fix: release workflow name by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/45
+* chore: bump go to 1.23.1 by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/47
+* chore: bump kaas 0.2.1 by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/48
+
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.4.1-d2iq...v1.4.2-d2iq
+
 ## 1.4.1-d2iq (2024-09-12)
 
 ## What's Changed
