@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.3-d2iq (2024-09-17)
+
+## What's Changed
+* chore: bump kaas 0.2.2 by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/50
+* build(deps): bump cachix/install-nix-action from 27 to 28 by @dependabot in https://github.com/mesosphere/dex-k8s-authenticator/pull/49
+
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.4.2-d2iq...v1.4.3-d2iq
+
 ## 1.4.2-d2iq (2024-09-13)
 
 ## What's Changed
