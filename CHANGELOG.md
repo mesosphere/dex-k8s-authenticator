@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.4-d2iq (2024-09-17)
+
+## What's Changed
+* fix: bump kaas 0.2.3 by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/52
+
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.4.3-d2iq...v1.4.4-d2iq
+
 ## 1.4.3-d2iq (2024-09-17)
 
 ## What's Changed
