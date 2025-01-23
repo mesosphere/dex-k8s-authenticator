@@ -7,8 +7,12 @@ updates:
       interval: "weekly"
     groups:
       all-go-mod-patch-and-minor:
-        patterns: [ "*" ]
-        update-types: [ "patch", "minor" ]
+        patterns: ["*"]
+        update-types: ["patch", "minor"]
+    ignore:
+      - dependency-name: github.com/mesosphere/konvoy-async-auth
+        versions:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
