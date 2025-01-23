@@ -9,10 +9,11 @@ updates:
       all-go-mod-patch-and-minor:
         patterns: ["*"]
         update-types: ["patch", "minor"]
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
     ignore:
       - dependency-name: github.com/mesosphere/konvoy-async-auth
-        versions:
-          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
