@@ -41,7 +41,7 @@ jobs:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install devbox
-        uses: jetify-com/devbox-install-action@v0.12.0
+        uses: jetify-com/devbox-install-action@v0.14.0
         with:
           enable-cache: false
           skip-nix-installation: true
