@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
 
 	"github.com/mesosphere/dex-k8s-authenticator/pkg/tenancy"
@@ -235,13 +236,29 @@ func TestK8sTenantsFilterClusterNames(t *testing.T) {
 						},
 					},
 				},
-				// This is
+				// KommanderCluster for the management cluster; must be in the "kommander"
+				// namespace and carry the host label so getManagementClusterName finds it.
 				&unstructured.Unstructured{
 					Object: map[string]interface{}{
 						"apiVersion": "kommander.mesosphere.io/v1beta1",
 						"kind":       "KommanderCluster",
 						"metadata": map[string]interface{}{
-							"name":      "host-cluster",
+							"name":      "my-custom-host-cluster",
+							"namespace": "kommander",
+							"labels": map[string]interface{}{
+								"kommander.d2iq.io/host": "true",
+							},
+						},
+					},
+				},
+				// The workspace-scoped KommanderCluster (same name, different namespace)
+				// is what appears in kcNames for the workspace list.
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "kommander.mesosphere.io/v1beta1",
+						"kind":       "KommanderCluster",
+						"metadata": map[string]interface{}{
+							"name":      "my-custom-host-cluster",
 							"namespace": "kommander-workspace",
 						},
 					},
@@ -251,6 +268,36 @@ func TestK8sTenantsFilterClusterNames(t *testing.T) {
 			clusterNames:  []string{"kubernetes-cluster", "kc-2"},
 			expectedNames: []string{"kubernetes-cluster"},
 		},
+		{
+			name: "management cluster not found returns error",
+			objs: []runtime.Object{
+				&unstructured.Unstructured{
+					Object: map[string]interface{}{
+						"apiVersion": "workspaces.kommander.mesosphere.io/v1alpha1",
+						"kind":       "Workspace",
+						"metadata": map[string]interface{}{
+							"name": "kommander-workspace",
+						},
+						"status": map[string]interface{}{
+							"namespaceRef": map[string]interface{}{
+								"name": "kommander-workspace",
+							},
+						},
+					},
+				},
+				// No KommanderCluster with the host label exists.
+			},
+			tenantId:      tenancy.TenantId("kommander-workspace"),
+			clusterNames:  []string{"kubernetes-cluster"},
+			errorContains: "no management KommanderCluster found with label kommander.d2iq.io/host=true in namespace kommander",
+		},
+	}
+
+	// Pre-register all GVRs used by FilterClusterNames so the fake client can
+	// handle List calls even when no objects of that type are in the fixture.
+	gvrToListKind := map[schema.GroupVersionResource]string{
+		{Group: "workspaces.kommander.mesosphere.io", Version: "v1alpha1", Resource: "workspaces"}:   "WorkspaceList",
+		{Group: "kommander.mesosphere.io", Version: "v1beta1", Resource: "kommanderclusters"}:        "KommanderClusterList",
 	}
 
 	for i := range testCases {
@@ -258,7 +305,7 @@ func TestK8sTenantsFilterClusterNames(t *testing.T) {
 		t.Run(tc.name, func(tt *testing.T) {
 			tt.Parallel()
 
-			cl := fake.NewSimpleDynamicClient(runtime.NewScheme(), tc.objs...)
+			cl := fake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), gvrToListKind, tc.objs...)
 			tenants := tenancy.NewK8sTenants(cl)
 			filtered, err := tenants.FilterClusterNames(context.Background(), tc.tenantId, tc.clusterNames)
 
