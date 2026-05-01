@@ -140,6 +140,16 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 	}
 	log.Printf("kcNames: %v\n", kcNames)
 
+	// Pre-fetch the management cluster name when processing the management workspace.
+	var mgmtClusterName string
+	if tenantId == managementWorkspaceNamespaceName {
+		mgmtClusterName, err = t.getManagementClusterName(ctx)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("management cluster name: %v\n", mgmtClusterName)
+	}
+
 	tenantNames := []string{}
 	for _, dkaConfigClusterName := range dkaConfigNames {
 		// Management cluster name in the DKA config requires special handling: the
@@ -147,11 +157,7 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 		// while its KommanderCluster name in K8s API is configurable. We look it up
 		// dynamically via the `kommander.d2iq.io/host=true` label.
 		if dkaConfigClusterName == managementClusterName && tenantId == managementWorkspaceNamespaceName {
-			mgmtName, err := t.getManagementClusterName(ctx)
-			if err != nil {
-				return nil, err
-			}
-			if slices.Contains(kcNames, mgmtName) {
+			if slices.Contains(kcNames, mgmtClusterName) {
 				tenantNames = append(tenantNames, dkaConfigClusterName)
 			}
 		} else {
