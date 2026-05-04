@@ -1,6 +1,21 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.4.5-d2iq (2026-05-04)
+
+## What's Changed
+* build(deps): bump cachix/install-nix-action from V28 to 30 by @dependabot[bot] in https://github.com/mesosphere/dex-k8s-authenticator/pull/55
+* fix: replace login screen DKP with NKP by @arthurchang-x in https://github.com/mesosphere/dex-k8s-authenticator/pull/57
+* fix(dependabot): ignore private dependency by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/58
+* fix(dependabot): ingore private depds by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/60
+* fix: bump go deps by @mhrabovcin in https://github.com/mesosphere/dex-k8s-authenticator/pull/61
+* build(deps): bump jetify-com/devbox-install-action from 0.11.0 to 0.12.0 by @dependabot[bot] in https://github.com/mesosphere/dex-k8s-authenticator/pull/59
+
+## New Contributors
+* @arthurchang-x made their first contribution in https://github.com/mesosphere/dex-k8s-authenticator/pull/57
+
+**Full Changelog**: https://github.com/mesosphere/dex-k8s-authenticator/compare/v1.4.4-d2iq...v1.4.5-d2iq
+
 ## 1.4.4-d2iq (2024-09-17)
 
 ## What's Changed
