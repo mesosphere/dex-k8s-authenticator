@@ -35,10 +35,14 @@ const (
 	// DKA stores management cluster under `kubernetes-cluster` name.
 	managementClusterName = "kubernetes-cluster"
 
-	// KommanderCluster for management cluster has different name in k8s api
-	// server vs in DKA config file.
-	managementWorkspaceNamespaceName      = "kommander-workspace"
-	managementClusterKommanderClusterName = "host-cluster"
+	// managementWorkspaceNamespaceName is the workspace namespace for the management cluster.
+	managementWorkspaceNamespaceName = "kommander-workspace"
+
+	// kommanderNamespace is the namespace where the management KommanderCluster lives.
+	kommanderNamespace = "kommander"
+
+	// kommanderClusterHostLabel is the label used to identify the management KommanderCluster.
+	kommanderClusterHostLabel = "kommander.d2iq.io/host"
 )
 
 var _ Tenants = &k8sTenants{}
@@ -136,15 +140,24 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 	}
 	log.Printf("kcNames: %v\n", kcNames)
 
+	// Pre-fetch the management cluster name when processing the management workspace.
+	var mgmtClusterName string
+	if tenantId == managementWorkspaceNamespaceName {
+		mgmtClusterName, err = t.getManagementClusterName(ctx)
+		if err != nil {
+			return nil, err
+		}
+		log.Printf("management cluster name: %v\n", mgmtClusterName)
+	}
+
 	tenantNames := []string{}
 	for _, dkaConfigClusterName := range dkaConfigNames {
-		// Management cluster name in the DKA config requires special handling, as
-		// because of historical reasons, the management cluster is stored as
-		// `kubernetes-cluster` in the DKA config, while having name `host-cluster`
-		// in K8s API. For this reason we need to check for presence of different
-		// name.
+		// Management cluster name in the DKA config requires special handling: the
+		// management cluster is stored as `kubernetes-cluster` in the DKA config,
+		// while its KommanderCluster name in K8s API is configurable. We look it up
+		// dynamically via the `kommander.d2iq.io/host=true` label.
 		if dkaConfigClusterName == managementClusterName && tenantId == managementWorkspaceNamespaceName {
-			if slices.Contains(kcNames, managementClusterKommanderClusterName) {
+			if slices.Contains(kcNames, mgmtClusterName) {
 				tenantNames = append(tenantNames, dkaConfigClusterName)
 			}
 		} else {
@@ -156,6 +169,23 @@ func (t *k8sTenants) FilterClusterNames(ctx context.Context, tenantId TenantId, 
 
 	log.Printf("tenantNames: %v\n", tenantNames)
 	return tenantNames, nil
+}
+
+// getManagementClusterName fetches the name of the management KommanderCluster
+// by listing KommanderClusters in the kommander namespace with the host label.
+func (t *k8sTenants) getManagementClusterName(ctx context.Context) (string, error) {
+	list, err := t.client.Resource(kommanderClusterGVR).
+		Namespace(kommanderNamespace).
+		List(ctx, metav1.ListOptions{
+			LabelSelector: kommanderClusterHostLabel + "=true",
+		})
+	if err != nil {
+		return "", err
+	}
+	if len(list.Items) == 0 {
+		return "", fmt.Errorf("no management KommanderCluster found with label %s=true in namespace %s", kommanderClusterHostLabel, kommanderNamespace)
+	}
+	return list.Items[0].GetName(), nil
 }
 
 func (t *k8sTenants) GetTenantsByCluster(ctx context.Context) (map[string]*Tenant, error) {
